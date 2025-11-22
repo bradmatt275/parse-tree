@@ -409,7 +409,7 @@ function App() {
     workerRef.current = new Worker('/worker.js');
     
     workerRef.current.onmessage = (e: MessageEvent) => {
-      const { type, nodes, error, message } = e.data;
+      const { type, nodes, error, message, originalInput } = e.data;
       
       if (type === 'PARSE_SUCCESS') {
         setAllNodes(nodes);
@@ -418,8 +418,9 @@ function App() {
         setProcessingMessage('Processing JSON...');
         
         // Save to history on successful parse (skip if it's the default sample)
-        if (jsonInput.trim() && jsonInput !== SAMPLE_JSON) {
-          saveToHistory(jsonInput, 'json', activeTab?.sessionId);
+        // Use originalInput from the worker instead of jsonInput state to avoid closure issues
+        if (originalInput && originalInput.trim() && originalInput !== SAMPLE_JSON) {
+          saveToHistory(originalInput, 'json', activeTab?.sessionId);
         }
       } else if (type === 'PARSE_ERROR') {
         setError(error);
