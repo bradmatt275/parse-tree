@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { VirtualTree } from './VirtualTree';
 import { CodeView, CodeViewRef } from './CodeView';
 import { VirtualizedInput } from './VirtualizedInput';
 import {
-  parseJsonToTree,
   getVisibleNodes,
   toggleNode,
   expandAll,
@@ -301,10 +301,6 @@ function App() {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
   }, []);
   
-  const toggleViewMode = useCallback(() => {
-    setViewMode((prev: ViewMode) => prev === 'tree' ? 'code' : 'tree');
-  }, []);
-  
   const handleClear = useCallback(() => {
     setJsonInput('');
     setAllNodes([]);
@@ -395,24 +391,45 @@ function App() {
   
   return (
     <div className="app">
-      <header className="header">
-        <h1 className="header-title">JSON Formatter Pro</h1>
-        <div className="header-controls">
+      <motion.header 
+        className="header"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      >
+        <motion.h1 
+          className="header-title"
+          initial={{ x: -50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
+        >
+          JSON Formatter Pro
+        </motion.h1>
+        <motion.div 
+          className="header-controls"
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+        >
           <div className="view-toggle">
-            <button 
+            <motion.button 
               className={`view-toggle-btn ${viewMode === 'tree' ? 'active' : ''}`}
               onClick={() => setViewMode('tree')}
               title="Tree View"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               🌳 Tree
-            </button>
-            <button 
+            </motion.button>
+            <motion.button 
               className={`view-toggle-btn ${viewMode === 'code' ? 'active' : ''}`}
               onClick={() => setViewMode('code')}
               title="Code View"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {'{ }'} Code
-            </button>
+            </motion.button>
           </div>
           <div className="search-container">
             <input
@@ -475,44 +492,96 @@ function App() {
               </div>
             )}
           </div>
-          <button className="btn" onClick={handleLoadFile} disabled={isProcessing}>
+          <motion.button 
+            className="btn" 
+            onClick={handleLoadFile} 
+            disabled={isProcessing}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
             📁 Load File
-          </button>
-          <button className="btn" onClick={handleFormat} disabled={isProcessing}>
+          </motion.button>
+          <motion.button 
+            className="btn" 
+            onClick={handleFormat} 
+            disabled={isProcessing}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
             {isProcessing ? 'Processing...' : 'Format'}
-          </button>
+          </motion.button>
           {viewMode === 'tree' && (
             <>
-              <button className="btn btn-secondary" onClick={handleExpandAll} disabled={isProcessing}>
+              <motion.button 
+                className="btn btn-secondary" 
+                onClick={handleExpandAll} 
+                disabled={isProcessing}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 Expand All
-              </button>
-              <button className="btn btn-secondary" onClick={handleCollapseAll} disabled={isProcessing}>
+              </motion.button>
+              <motion.button 
+                className="btn btn-secondary" 
+                onClick={handleCollapseAll} 
+                disabled={isProcessing}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 Collapse All
-              </button>
+              </motion.button>
             </>
           )}
-          <button className="btn btn-secondary" onClick={handleCopy} disabled={!!error || allNodes.length === 0 || isProcessing}>
+          <motion.button 
+            className="btn btn-secondary" 
+            onClick={handleCopy} 
+            disabled={!!error || allNodes.length === 0 || isProcessing}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
             Copy
-          </button>
-          <button className="btn btn-secondary" onClick={handleClear} disabled={isProcessing}>
+          </motion.button>
+          <motion.button 
+            className="btn btn-secondary" 
+            onClick={handleClear} 
+            disabled={isProcessing}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
             Clear
-          </button>
-          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+          </motion.button>
+          <motion.button 
+            className="theme-toggle" 
+            onClick={toggleTheme} 
+            title="Toggle theme"
+            whileHover={{ scale: 1.1, rotate: 180 }}
+            whileTap={{ scale: 0.9 }}
+          >
             {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </header>
+          </motion.button>
+        </motion.div>
+      </motion.header>
       
       <div className="content">
-        <div className="input-section">
-          <div className="input-header">
+        <motion.div 
+          className="input-section"
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.4, type: "spring", stiffness: 80 }}
+        >
+          <motion.div 
+            className="input-header"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
             Input JSON
             {jsonInput && (
               <span style={{ marginLeft: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 {(jsonInput.length / 1024 / 1024).toFixed(2)} MB
               </span>
             )}
-          </div>
+          </motion.div>
           <div className="textarea-container">
             <input
               ref={fileInputRef}
@@ -540,48 +609,102 @@ function App() {
               />
             )}
           </div>
-        </div>
+        </motion.div>
         
-        <div className="output-section">
-          <div className="output-header">
+        <motion.div 
+          className="output-section"
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.4, type: "spring", stiffness: 80 }}
+        >
+          <motion.div 
+            className="output-header"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
             Formatted Output
             {viewMode === 'tree' && visibleNodes.length > 0 && (
               <span style={{ marginLeft: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
                 {visibleNodes.length} visible / {allNodes.length} total nodes
               </span>
             )}
-          </div>
+          </motion.div>
           <div className="tree-container" ref={outputRef}>
-            {isProcessing ? (
-              <div className="processing-indicator">
-                <div className="spinner"></div>
-                <p>{processingMessage}</p>
-              </div>
-            ) : error ? (
-              <div className="error-message">
-                <strong>Error parsing JSON:</strong>
-                <br />
-                {error}
-              </div>
-            ) : viewMode === 'tree' ? (
-              <VirtualTree
-                ref={treeRef}
-                nodes={visibleNodes}
-                onToggle={handleToggle}
-                searchMatches={searchMatches}
-                currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
-                height={containerHeight}
-              />
-            ) : (
-              <CodeView 
-                ref={codeViewRef}
-                code={formattedCode} 
-                searchQuery={searchQuery}
-                currentMatchLine={currentMatchLine}
-              />
-            )}
+            <AnimatePresence mode="wait">
+              {isProcessing ? (
+                <motion.div 
+                  className="processing-indicator"
+                  key="processing"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  <motion.div 
+                    className="spinner"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {processingMessage}
+                  </motion.p>
+                </motion.div>
+              ) : error ? (
+                <motion.div 
+                  className="error-message"
+                  key="error"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  <strong>Error parsing JSON:</strong>
+                  <br />
+                  {error}
+                </motion.div>
+              ) : viewMode === 'tree' ? (
+                <motion.div
+                  key="tree"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ height: '100%' }}
+                >
+                  <VirtualTree
+                    ref={treeRef}
+                    nodes={visibleNodes}
+                    onToggle={handleToggle}
+                    searchMatches={searchMatches}
+                    currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
+                    height={containerHeight}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="code"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ height: '100%' }}
+                >
+                  <CodeView 
+                    ref={codeViewRef}
+                    code={formattedCode} 
+                    searchQuery={searchQuery}
+                    currentMatchLine={currentMatchLine}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
