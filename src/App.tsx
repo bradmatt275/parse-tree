@@ -1,5 +1,21 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Sun, 
+  Moon, 
+  Search, 
+  ChevronUp, 
+  ChevronDown, 
+  FolderOpen, 
+  Zap, 
+  Copy, 
+  Trash2, 
+  ChevronsDown, 
+  ChevronsUp,
+  History,
+  X,
+  Plus
+} from 'lucide-react';
 import { VirtualTree } from './VirtualTree';
 import { CodeView, CodeViewRef } from './CodeView';
 import { VirtualizedInput } from './VirtualizedInput';
@@ -11,10 +27,12 @@ import {
   searchNodes,
   TreeNode,
 } from './jsonParser';
+import { HistoryModal } from './HistoryModal';
+import { saveToHistory } from './historyStorage';
+import { TabData, FormatType } from './types';
 
 type Theme = 'dark' | 'light';
 type ViewMode = 'tree' | 'code';
-type FormatType = 'json' | 'xml';
 
 const SAMPLE_JSON = `{
   "name": "JSON Formatter Pro",
@@ -55,12 +73,13 @@ const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 </catalog>`;
 
 function App() {
-  const [jsonInput, setJsonInput] = useState<string>(SAMPLE_JSON);
-  const [allNodes, setAllNodes] = useState<TreeNode[]>([]);
-  const [error, setError] = useState<string | undefined>();
+  // Multi-tab state
+  const [tabs, setTabs] = useState<TabData[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
+  
+  // UI state
   const [theme, setTheme] = useState<Theme>('dark');
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
-  const [formatType, setFormatType] = useState<FormatType>('json');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchMatches, setSearchMatches] = useState<Set<string>>(new Set());
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
@@ -68,6 +87,19 @@ function App() {
   const [containerHeight, setContainerHeight] = useState<number>(600);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  
+  // Get active tab
+  const activeTab = useMemo(() => 
+    tabs.find(tab => tab.id === activeTabId),
+    [tabs, activeTabId]
+  );
+  
+  // Derived state from active tab
+  const jsonInput = activeTab?.content || '';
+  const allNodes = activeTab?.nodes || [];
+  const error = activeTab?.error;
+  const formatType = activeTab?.formatType || 'json';
   
   
   const outputRef = useRef<HTMLDivElement>(null);
@@ -80,6 +112,76 @@ function App() {
   const isExpandingRef = useRef<boolean>(false);
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
+  const initializedRef = useRef<boolean>(false);
+  
+  // Tab management functions
+  const createNewTab = useCallback((formatType: FormatType = 'json') => {
+    const newTab: TabData = {
+      id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: `Untitled-${tabs.length + 1}.${formatType}`,
+      formatType,
+      content: formatType === 'json' ? SAMPLE_JSON : SAMPLE_XML,
+      nodes: [],
+      error: undefined,
+    };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+    return newTab.id;
+  }, [tabs.length]);
+  
+  const closeTab = useCallback((tabId: string) => {
+    setTabs(prev => {
+      const filtered = prev.filter(tab => tab.id !== tabId);
+      
+      // If closing active tab, switch to another tab
+      if (activeTabId === tabId && filtered.length > 0) {
+        const currentIndex = prev.findIndex(tab => tab.id === tabId);
+        const newActiveIndex = currentIndex > 0 ? currentIndex - 1 : 0;
+        setActiveTabId(filtered[newActiveIndex].id);
+      } else if (filtered.length === 0) {
+        // If no tabs left, create a new one
+        const newTab: TabData = {
+          id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          title: 'Untitled-1.json',
+          formatType: 'json',
+          content: SAMPLE_JSON,
+          nodes: [],
+          error: undefined,
+        };
+        setActiveTabId(newTab.id);
+        return [newTab];
+      }
+      
+      return filtered;
+    });
+  }, [activeTabId]);
+  
+  const updateActiveTab = useCallback((updates: Partial<TabData>) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId ? { ...tab, ...updates } : tab
+    ));
+  }, [activeTabId]);
+  
+  const setJsonInput = useCallback((content: string) => {
+    updateActiveTab({ content });
+  }, [updateActiveTab]);
+  
+  const setAllNodes = useCallback((nodes: TreeNode[]) => {
+    updateActiveTab({ nodes });
+  }, [updateActiveTab]);
+  
+  const setError = useCallback((error: string | undefined) => {
+    updateActiveTab({ error });
+  }, [updateActiveTab]);
+  
+  // Initialize with one tab
+  useEffect(() => {
+    if (!initializedRef.current && tabs.length === 0) {
+      initializedRef.current = true;
+      createNewTab('json');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Parse input based on format type
   const parseInput = useCallback((input: string) => {
@@ -219,6 +321,11 @@ function App() {
         buildXmlTree(root, nodes, 0, '', undefined);
         setAllNodes(nodes);
         setIsProcessing(false);
+        
+        // Save to history on successful parse
+        if (input.trim()) {
+          saveToHistory(input, 'xml');
+        }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Invalid XML');
         setAllNodes([]);
@@ -272,6 +379,11 @@ function App() {
         setError(undefined);
         setIsProcessing(false);
         setProcessingMessage('Processing JSON...');
+        
+        // Save to history on successful parse
+        if (jsonInput.trim()) {
+          saveToHistory(jsonInput, 'json');
+        }
       } else if (type === 'PARSE_ERROR') {
         setError(error);
         setAllNodes([]);
@@ -376,22 +488,19 @@ function App() {
   }, [searchQuery, allNodes]);
   
   const handleFormatChange = useCallback((newFormat: FormatType) => {
-    setFormatType(newFormat);
+    // Update active tab format type and content
+    const newContent = newFormat === 'xml' ? SAMPLE_XML : SAMPLE_JSON;
+    updateActiveTab({
+      formatType: newFormat,
+      content: newContent,
+      nodes: [],
+      error: undefined,
+      title: `Untitled-${tabs.findIndex(t => t.id === activeTabId) + 1}.${newFormat}`,
+    });
     
-    // Clear current data and load sample for new format
-    if (newFormat === 'xml') {
-      setJsonInput(SAMPLE_XML);
-      setProcessingMessage('Processing XML...');
-    } else {
-      setJsonInput(SAMPLE_JSON);
-      setProcessingMessage('Processing JSON...');
-    }
-    
-    // Reset state
-    setAllNodes([]);
-    setError(undefined);
+    setProcessingMessage(newFormat === 'xml' ? 'Processing XML...' : 'Processing JSON...');
     setSearchQuery('');
-  }, []);
+  }, [updateActiveTab, activeTabId, tabs]);
   
   const handleFormat = useCallback(() => {
     if (!jsonInput.trim()) {
@@ -424,16 +533,16 @@ function App() {
   }, [formatType, parseInput]);
   
   const handleToggle = useCallback((nodeId: string) => {
-    setAllNodes(prev => toggleNode(prev, nodeId));
-  }, []);
+    updateActiveTab({ nodes: toggleNode(allNodes, nodeId) });
+  }, [allNodes, updateActiveTab]);
   
   const handleExpandAll = useCallback(() => {
-    setAllNodes(prev => expandAll(prev));
-  }, []);
+    updateActiveTab({ nodes: expandAll(allNodes) });
+  }, [allNodes, updateActiveTab]);
   
   const handleCollapseAll = useCallback(() => {
-    setAllNodes(prev => collapseAll(prev));
-  }, []);
+    updateActiveTab({ nodes: collapseAll(allNodes) });
+  }, [allNodes, updateActiveTab]);
   
   const handleNextMatch = useCallback(() => {
     if (matchIds.length > 0) {
@@ -505,6 +614,16 @@ function App() {
     // For small pastes, let default behavior handle it
   }, [formatType, parseInput]);
   
+  const handleLoadFromHistory = useCallback((content: string, formatType: FormatType) => {
+    updateActiveTab({
+      content,
+      formatType,
+      nodes: [],
+      error: undefined,
+    });
+    parseInput(content);
+  }, [updateActiveTab, parseInput]);
+  
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   
   const formattedCode = useMemo(() => {
@@ -567,29 +686,56 @@ function App() {
       <header className="app-header">
         <div className="header-left">
           <div className="app-logo">
-            <span className="logo-icon">⚡</span>
+            <Zap className="logo-icon" size={18} />
             <span className="logo-text">Formatter Pro</span>
           </div>
         </div>
         
         <div className="header-center">
           <div className="tabs-container">
-            <div className="tab active">
-              <span className="tab-icon">{formatType === 'json' ? '{}' : '<>'}</span>
-              <span className="tab-title">Untitled-1.{formatType}</span>
-              <button className="tab-close">×</button>
-            </div>
-            <button className="tab-add" title="New Tab (Coming Soon)">+</button>
+            {tabs.map((tab) => (
+              <div 
+                key={tab.id}
+                className={`tab ${tab.id === activeTabId ? 'active' : ''}`}
+                onClick={() => setActiveTabId(tab.id)}
+              >
+                <span className="tab-icon">{tab.formatType === 'json' ? '{}' : '<>'}</span>
+                <span className="tab-title">{tab.title}</span>
+                <button 
+                  className="tab-close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeTab(tab.id);
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            <button 
+              className="tab-add" 
+              onClick={() => createNewTab('json')}
+              title="New Tab"
+            >
+              <Plus size={16} />
+            </button>
           </div>
         </div>
 
         <div className="header-right">
           <button 
             className="icon-button" 
+            onClick={() => setIsHistoryOpen(true)}
+            title="History"
+          >
+            <History size={18} />
+          </button>
+          <button 
+            className="icon-button" 
             onClick={toggleTheme} 
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
       </header>
@@ -631,7 +777,7 @@ function App() {
 
         <div className="toolbar-group search-group">
           <div className="search-box">
-            <span className="search-icon">🔍</span>
+            <Search className="search-icon" size={16} />
             <input
               type="text"
               placeholder="Search..."
@@ -656,8 +802,12 @@ function App() {
                   }
                 </span>
                 <div className="search-nav-btns">
-                  <button onClick={handlePreviousMatch} title="Previous (Shift+Enter)">▲</button>
-                  <button onClick={handleNextMatch} title="Next (Enter)">▼</button>
+                  <button onClick={handlePreviousMatch} title="Previous (Shift+Enter)">
+                    <ChevronUp size={14} />
+                  </button>
+                  <button onClick={handleNextMatch} title="Next (Enter)">
+                    <ChevronDown size={14} />
+                  </button>
                 </div>
               </div>
             )}
@@ -666,11 +816,11 @@ function App() {
 
         <div className="toolbar-group actions-group">
           <button className="tool-btn" onClick={handleLoadFile} disabled={isProcessing} title="Load File">
-            <span className="btn-icon">📂</span>
+            <FolderOpen className="btn-icon" size={16} />
             <span className="btn-text">Load</span>
           </button>
           <button className="tool-btn primary" onClick={handleFormat} disabled={isProcessing} title="Format">
-            <span className="btn-icon">⚡</span>
+            <Zap className="btn-icon" size={16} />
             <span className="btn-text">Format</span>
           </button>
           
@@ -679,20 +829,20 @@ function App() {
           {viewMode === 'tree' && (
             <>
               <button className="tool-btn icon-only" onClick={handleExpandAll} disabled={isProcessing} title="Expand All">
-                ⇊
+                <ChevronsDown size={16} />
               </button>
               <button className="tool-btn icon-only" onClick={handleCollapseAll} disabled={isProcessing} title="Collapse All">
-                ⇈
+                <ChevronsUp size={16} />
               </button>
               <div className="divider"></div>
             </>
           )}
           
           <button className="tool-btn icon-only" onClick={handleCopy} disabled={!!error || allNodes.length === 0 || isProcessing} title="Copy to Clipboard">
-            📋
+            <Copy size={16} />
           </button>
           <button className="tool-btn icon-only danger" onClick={handleClear} disabled={isProcessing} title="Clear All">
-            🗑️
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
@@ -841,6 +991,12 @@ function App() {
           </div>
         </motion.div>
       </div>
+      
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onLoad={handleLoadFromHistory}
+      />
     </div>
   );
 }
