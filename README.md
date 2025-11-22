@@ -1,16 +1,20 @@
-# JSON Formatter Pro
+# JSON/XML Formatter Pro
 
-A high-performance JSON formatter web application that can handle extremely large JSON files (10MB+) without performance issues. Built with React, TypeScript, and Web Workers for blazing-fast performance.
+A high-performance JSON and XML formatter web application that can handle extremely large files (10MB+) without performance issues. Built with React, TypeScript, and Web Workers for blazing-fast performance.
 
 ## ✨ Features
 
 ### Core Features
+- **Format Support**: 
+  - **JSON**: Full JSON parsing and formatting with Web Worker support
+  - **XML**: XML parsing and formatting with attribute support
+  - **Easy Toggle**: Switch between JSON and XML modes with one click
 - **Dual View Modes**: 
   - **Tree View**: Interactive collapsible tree structure with expand/collapse
-  - **Code View**: Traditional JSON syntax highlighting with line numbers
-- **Virtual Scrolling**: Only renders visible content in the DOM, enabling smooth performance with massive JSON files (tested with 19MB+ files)
-- **Editable Input**: Large JSON files use virtualized input with line-by-line editing
-- **Web Worker Processing**: Background thread parsing prevents UI freezing
+  - **Code View**: Traditional syntax highlighting with line numbers
+- **Virtual Scrolling**: Only renders visible content in the DOM, enabling smooth performance with massive files (tested with 19MB+ files)
+- **Editable Input**: Large files use virtualized input with line-by-line editing
+- **Web Worker Processing**: Background thread parsing prevents UI freezing (JSON only)
 - **Search with Navigation**: 
   - Search across keys, values, and paths
   - Navigate matches with Enter/Shift+Enter or navigation buttons
@@ -18,20 +22,21 @@ A high-performance JSON formatter web application that can handle extremely larg
   - Line highlighting and scrolling in code view
   - Live match counter
 - **Line Numbers**: Clear line numbering for reference in both views
-- **Syntax Highlighting**: Color-coded display for different JSON value types:
+- **Syntax Highlighting**: Color-coded display for different value types:
   - Strings (orange/red)
   - Numbers (green)
   - Booleans (blue)
   - Null values (blue)
   - Keys (light blue)
+  - XML attributes prefixed with "@"
   
 ### Advanced Features
 - **Smart Auto-Formatting**: Debounced auto-format as you type (prevents UI lag)
-- **Paste Handling**: Automatically detects and formats JSON pasted from clipboard
-- **File Upload**: Load JSON files directly from your filesystem
-- **Copy to Clipboard**: One-click copy of formatted JSON
+- **Paste Handling**: Automatically detects and formats content pasted from clipboard
+- **File Upload**: Load JSON or XML files directly from your filesystem
+- **Copy to Clipboard**: One-click copy of formatted output
 - **Expand/Collapse All**: Bulk expand or collapse all tree nodes
-- **Error Handling**: Graceful error messages for malformed JSON with progress indicators
+- **Error Handling**: Graceful error messages for malformed data with progress indicators
 - **Dark/Light Themes**: Toggle between dark and light themes
 - **Responsive Design**: Works on desktop and mobile devices
 
@@ -132,22 +137,27 @@ npm run preview
 
 ## 📝 Usage
 
-1. **Input JSON**: 
-   - Paste JSON directly into the left input panel
-   - Or click "📁 Load File" to upload a JSON file
+1. **Select Format**:
+   - Choose between JSON or XML mode using the toggle buttons at the top
+   - JSON is selected by default
+   
+2. **Input Data**: 
+   - Paste JSON or XML directly into the left input panel
+   - Or click "📁 Load File" to upload a file (.json or .xml)
    - Auto-formats on paste or file load
    
-2. **Format**: Click "Format" button or wait for auto-format (800ms debounce)
+3. **Format**: Click "Format" button or wait for auto-format (800ms debounce)
 
-3. **View Modes**:
+4. **View Modes**:
    - **🌳 Tree**: Interactive collapsible tree view
-   - **{ } Code**: Traditional JSON code view with syntax highlighting
+   - **{ } Code**: Traditional code view with syntax highlighting
 
-4. **Navigate Tree View**: 
+5. **Navigate Tree View**: 
    - Click arrow icons (▶/▼) to expand/collapse nodes
    - Use "Expand All" / "Collapse All" buttons for bulk operations
+   - XML attributes shown with "@" prefix (e.g., @id)
 
-5. **Search**:
+6. **Search**:
    - Type in the search box to find keys, values, or paths
    - Press **Enter** to jump to next match
    - Press **Shift+Enter** to jump to previous match
@@ -155,11 +165,11 @@ npm run preview
    - Works in both tree and code views
    - Tree view auto-expands to reveal matches
 
-6. **Copy**: Click "Copy" to copy the formatted JSON to clipboard
+7. **Copy**: Click "Copy" to copy the formatted output to clipboard
 
-7. **Theme**: Toggle between dark and light themes using the 🌙/☀️ button
+8. **Theme**: Toggle between dark and light themes using the 🌙/☀️ button
 
-8. **Edit**: 
+9. **Edit**: 
    - Small files: Direct editing in input panel
    - Large files (>100KB): Virtualized line-by-line editing
 
@@ -171,16 +181,18 @@ npm run preview
 
 ## 🎯 Why This Formatter?
 
-Most online JSON formatters render the entire tree at once, which causes:
+Most online formatters render the entire tree at once, which causes:
 - Browser crashes with large files (>1MB)
 - Slow rendering and scrolling
 - UI freezing during parsing
 - High memory usage
 - Poor user experience
+- Limited format support
 
-**JSON Formatter Pro** solves these issues with:
+**JSON/XML Formatter Pro** solves these issues with:
+- Support for both JSON and XML formats
 - Virtual scrolling that renders only visible content
-- Web Worker parsing that doesn't block the UI
+- Web Worker parsing that doesn't block the UI (JSON)
 - Optimized algorithms (660,000× faster search)
 - Smooth scrolling regardless of file size (tested with 19MB files)
 - Low memory footprint
@@ -193,7 +205,9 @@ Most online JSON formatters render the entire tree at once, which causes:
 - **TypeScript**: Type-safe development
 - **Vite**: Fast build tool and dev server
 - **react-window**: Virtual scrolling library
+- **DOMParser**: Built-in XML parsing
 - **CSS Variables**: Theme support
+- **Framer Motion**: Smooth animations
 
 ## 📦 Project Structure
 
@@ -207,6 +221,7 @@ parse-tree/
 │   ├── CodeView.tsx         # Virtual scrolling code view
 │   ├── VirtualizedInput.tsx # Virtual scrolling input for large files
 │   ├── jsonParser.ts        # JSON parsing and tree logic
+│   ├── xmlParser.ts         # XML parsing utilities
 │   ├── main.tsx            # Application entry point
 │   └── index.css           # Global styles and themes
 ├── index.html              # HTML template
@@ -222,6 +237,7 @@ parse-tree/
 
 The codebase is modular and easy to extend:
 
+- **Add new formats**: Follow the XML implementation pattern in `App.tsx`
 - **Add new syntax highlighting**: Update `VirtualTree.tsx` render methods
 - **Add new search options**: Extend `searchNodes()` in `jsonParser.ts`
 - **Add export formats**: Add new functions in `App.tsx`
