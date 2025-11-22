@@ -202,7 +202,7 @@ function App() {
       setErrorState(activeTab.error);
       setFormatTypeState(activeTab.formatType);
     }
-  }, [activeTab]); // Depend on entire activeTab object
+  }, [activeTab?.id]); // Only trigger when tab ID changes (switching tabs)
   
   // Initialize with one tab
   useEffect(() => {
@@ -454,9 +454,14 @@ function App() {
       mountParseRef.current = true;
       parseInput(jsonInput);
       // Reset flag after a short delay so subsequent changes trigger auto-format
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         mountParseRef.current = false;
       }, 100);
+      
+      return () => {
+        clearTimeout(timer);
+        mountParseRef.current = false;
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
