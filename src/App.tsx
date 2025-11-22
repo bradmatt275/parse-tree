@@ -3,7 +3,6 @@ import { VirtualTree } from './VirtualTree';
 import { CodeView, CodeViewRef } from './CodeView';
 import { VirtualizedInput } from './VirtualizedInput';
 import {
-  parseJsonToTree,
   getVisibleNodes,
   toggleNode,
   expandAll,
@@ -301,9 +300,7 @@ function App() {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
   }, []);
   
-  const toggleViewMode = useCallback(() => {
-    setViewMode((prev: ViewMode) => prev === 'tree' ? 'code' : 'tree');
-  }, []);
+
   
   const handleClear = useCallback(() => {
     setJsonInput('');
