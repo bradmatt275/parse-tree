@@ -77,20 +77,21 @@ function App() {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   
+  // Active tab content (direct state for reactivity - synced with tabs)
+  const [jsonInput, setJsonInputState] = useState<string>(SAMPLE_JSON);
+  const [allNodes, setAllNodesState] = useState<TreeNode[]>([]);
+  const [error, setErrorState] = useState<string | undefined>();
+  const [formatType, setFormatTypeState] = useState<FormatType>('json');
+  
   // Get active tab
   const activeTab = useMemo(() => 
     tabs.find(tab => tab.id === activeTabId),
     [tabs, activeTabId]
   );
   
-  // Active tab data (derived from tabs, not state)
-  const jsonInput = useMemo(() => activeTab?.content || '', [activeTab]);
-  const allNodes = useMemo(() => activeTab?.nodes || [], [activeTab]);
-  const error = useMemo(() => activeTab?.error, [activeTab]);
-  const formatType = useMemo(() => activeTab?.formatType || 'json', [activeTab]);
-  
-  // Setters that update tabs
+  // Setters that update both state and tabs
   const setJsonInput = useCallback((content: string) => {
+    setJsonInputState(content);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, content } : tab
@@ -99,6 +100,7 @@ function App() {
   }, [activeTabId]);
   
   const setAllNodes = useCallback((nodes: TreeNode[]) => {
+    setAllNodesState(nodes);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, nodes } : tab
@@ -107,6 +109,7 @@ function App() {
   }, [activeTabId]);
   
   const setError = useCallback((error: string | undefined) => {
+    setErrorState(error);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, error } : tab
@@ -115,6 +118,7 @@ function App() {
   }, [activeTabId]);
   
   const setFormatType = useCallback((formatType: FormatType) => {
+    setFormatTypeState(formatType);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, formatType } : tab
@@ -146,7 +150,6 @@ function App() {
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
   const initializedRef = useRef<boolean>(false);
-  const initialParsedRef = useRef<boolean>(false);
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
@@ -189,6 +192,16 @@ function App() {
       return filtered;
     });
   }, [activeTabId]);
+  
+  // Sync active tab data to state when switching tabs
+  useEffect(() => {
+    if (activeTab) {
+      setJsonInputState(activeTab.content);
+      setAllNodesState(activeTab.nodes);
+      setErrorState(activeTab.error);
+      setFormatTypeState(activeTab.formatType);
+    }
+  }, [activeTab?.id]); // Only trigger when tab ID changes (switching tabs)
   
   // Initialize with one tab
   useEffect(() => {
@@ -429,15 +442,13 @@ function App() {
     };
   }, []);
   
-  // Parse initial content once tabs are created
+  // Parse on mount (like original code)
   useEffect(() => {
-    if (!initialParsedRef.current && tabs.length === 1 && tabs[0].nodes.length === 0 && tabs[0].content) {
-      // This is the initial tab with sample content, parse it
-      initialParsedRef.current = true;
-      parseInput(tabs[0].content);
+    if (jsonInput) {
+      parseInput(jsonInput);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs.length]); // Only run when first tab is created
+  }, []);
   
   // Update container height on resize
   useEffect(() => {
