@@ -96,8 +96,9 @@ body {
   width: 200%;
   height: 200%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  animation: headerPulse 15s ease-in-out infinite;
+  animation: headerPulse 20s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 @keyframes headerPulse {
@@ -155,7 +156,7 @@ body {
   font-size: 0.9rem;
   font-family: inherit;
   font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -198,7 +199,7 @@ body {
   font-size: 0.9rem;
   font-family: inherit;
   font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
@@ -270,7 +271,7 @@ body {
   font-family: inherit;
   font-size: 0.9rem;
   min-width: 220px;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .search-input::placeholder {
@@ -315,7 +316,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .nav-btn:hover:not(:disabled) {
@@ -443,15 +444,8 @@ body {
   border-top-color: transparent;
   border-right-color: transparent;
   border-radius: 50%;
-  animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
   background: var(--accent-gradient);
   box-shadow: var(--glow);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .code-view {
@@ -530,7 +524,7 @@ body {
   font-size: 0.9rem;
   line-height: 1.6;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .tree-node:hover {
@@ -596,7 +590,7 @@ body {
   margin-right: 6px;
   flex-shrink: 0;
   color: var(--accent-color);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, transform 0.3s ease;
   border-radius: 4px;
 }
 
@@ -651,7 +645,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease;
   width: 44px;
   height: 44px;
 }
