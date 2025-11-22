@@ -1,5 +1,7 @@
 // Types for multi-tab and history functionality
 
+import type { TreeNode } from './jsonParser';
+
 export type FormatType = 'json' | 'xml';
 
 export interface TabData {
@@ -7,7 +9,7 @@ export interface TabData {
   title: string;
   formatType: FormatType;
   content: string;
-  nodes: any[]; // TreeNode[] but avoiding circular dependency
+  nodes: TreeNode[];
   error?: string;
 }
 
