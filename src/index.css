@@ -346,13 +346,13 @@ body {
 }
 
 .input-header {
-  background: var(--accent-gradient-3);
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  letter-spacing: 0.5px;
+  background: var(--bg-secondary);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
 }
 
 .textarea-container {
@@ -389,13 +389,13 @@ body {
 }
 
 .output-header {
-  background: var(--accent-gradient-2);
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  letter-spacing: 0.5px;
+  background: var(--bg-secondary);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
 }
 
 .tree-container {
