@@ -77,6 +77,55 @@ function App() {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   
+  // Active tab data (kept as state for reactivity)
+  const [jsonInputState, setJsonInputState] = useState<string>(SAMPLE_JSON);
+  const [allNodesState, setAllNodesState] = useState<TreeNode[]>([]);
+  const [errorState, setErrorState] = useState<string | undefined>();
+  const [formatTypeState, setFormatTypeState] = useState<FormatType>('json');
+  
+  // Wrapped setters that also update tabs
+  const setJsonInput = useCallback((content: string) => {
+    setJsonInputState(content);
+    if (activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, content } : tab
+      ));
+    }
+  }, [activeTabId]);
+  
+  const setAllNodes = useCallback((nodes: TreeNode[]) => {
+    setAllNodesState(nodes);
+    if (activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, nodes } : tab
+      ));
+    }
+  }, [activeTabId]);
+  
+  const setError = useCallback((error: string | undefined) => {
+    setErrorState(error);
+    if (activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, error } : tab
+      ));
+    }
+  }, [activeTabId]);
+  
+  const setFormatType = useCallback((formatType: FormatType) => {
+    setFormatTypeState(formatType);
+    if (activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, formatType } : tab
+      ));
+    }
+  }, [activeTabId]);
+  
+  // Expose the state values
+  const jsonInput = jsonInputState;
+  const allNodes = allNodesState;
+  const error = errorState;
+  const formatType = formatTypeState;
+  
   // UI state
   const [theme, setTheme] = useState<Theme>('dark');
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
@@ -95,11 +144,18 @@ function App() {
     [tabs, activeTabId]
   );
   
-  // Derived state from active tab
-  const jsonInput = activeTab?.content || '';
-  const allNodes = activeTab?.nodes || [];
-  const error = activeTab?.error;
-  const formatType = activeTab?.formatType || 'json';
+  // Sync active tab data to state when active tab changes (but ignore if it's our own update)
+  const syncingRef = useRef(false);
+  useEffect(() => {
+    if (activeTab && !syncingRef.current) {
+      syncingRef.current = true;
+      setJsonInputState(activeTab.content);
+      setAllNodesState(activeTab.nodes);
+      setErrorState(activeTab.error);
+      setFormatTypeState(activeTab.formatType);
+      setTimeout(() => { syncingRef.current = false; }, 0);
+    }
+  }, [activeTab]);
   
   
   const outputRef = useRef<HTMLDivElement>(null);
@@ -155,24 +211,6 @@ function App() {
       return filtered;
     });
   }, [activeTabId]);
-  
-  const updateActiveTab = useCallback((updates: Partial<TabData>) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId ? { ...tab, ...updates } : tab
-    ));
-  }, [activeTabId]);
-  
-  const setJsonInput = useCallback((content: string) => {
-    updateActiveTab({ content });
-  }, [updateActiveTab]);
-  
-  const setAllNodes = useCallback((nodes: TreeNode[]) => {
-    updateActiveTab({ nodes });
-  }, [updateActiveTab]);
-  
-  const setError = useCallback((error: string | undefined) => {
-    updateActiveTab({ error });
-  }, [updateActiveTab]);
   
   // Initialize with one tab
   useEffect(() => {
@@ -340,7 +378,7 @@ function App() {
     }
   }, [formatType]);
   
-  // Auto-format with debounce when jsonInput changes
+  // Auto-format with debounce when tab content or format changes
   useEffect(() => {
     // Clear existing timer
     if (debounceTimerRef.current) {
@@ -349,8 +387,6 @@ function App() {
     
     // Don't auto-format if input is empty
     if (!jsonInput.trim()) {
-      setAllNodes([]);
-      setError(undefined);
       return;
     }
     
@@ -428,14 +464,6 @@ function App() {
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
   
-  // Parse on mount
-  useEffect(() => {
-    if (jsonInput) {
-      parseInput(jsonInput);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
   // Get match IDs as array for navigation (includes all matches, not just visible)
   const matchIds = useMemo(() => {
     return allNodes
@@ -490,17 +518,21 @@ function App() {
   const handleFormatChange = useCallback((newFormat: FormatType) => {
     // Update active tab format type and content
     const newContent = newFormat === 'xml' ? SAMPLE_XML : SAMPLE_JSON;
-    updateActiveTab({
-      formatType: newFormat,
-      content: newContent,
-      nodes: [],
-      error: undefined,
-      title: `Untitled-${tabs.findIndex(t => t.id === activeTabId) + 1}.${newFormat}`,
-    });
+    setFormatType(newFormat);
+    setJsonInput(newContent);
+    setAllNodes([]);
+    setError(undefined);
+    
+    // Update tab title
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId
+        ? { ...tab, title: `Untitled-${prev.findIndex(t => t.id === activeTabId) + 1}.${newFormat}` }
+        : tab
+    ));
     
     setProcessingMessage(newFormat === 'xml' ? 'Processing XML...' : 'Processing JSON...');
     setSearchQuery('');
-  }, [updateActiveTab, activeTabId, tabs]);
+  }, [activeTabId]);
   
   const handleFormat = useCallback(() => {
     if (!jsonInput.trim()) {
@@ -533,16 +565,16 @@ function App() {
   }, [formatType, parseInput]);
   
   const handleToggle = useCallback((nodeId: string) => {
-    updateActiveTab({ nodes: toggleNode(allNodes, nodeId) });
-  }, [allNodes, updateActiveTab]);
+    setAllNodes(toggleNode(allNodes, nodeId));
+  }, [allNodes]);
   
   const handleExpandAll = useCallback(() => {
-    updateActiveTab({ nodes: expandAll(allNodes) });
-  }, [allNodes, updateActiveTab]);
+    setAllNodes(expandAll(allNodes));
+  }, [allNodes]);
   
   const handleCollapseAll = useCallback(() => {
-    updateActiveTab({ nodes: collapseAll(allNodes) });
-  }, [allNodes, updateActiveTab]);
+    setAllNodes(collapseAll(allNodes));
+  }, [allNodes]);
   
   const handleNextMatch = useCallback(() => {
     if (matchIds.length > 0) {
@@ -614,15 +646,13 @@ function App() {
     // For small pastes, let default behavior handle it
   }, [formatType, parseInput]);
   
-  const handleLoadFromHistory = useCallback((content: string, formatType: FormatType) => {
-    updateActiveTab({
-      content,
-      formatType,
-      nodes: [],
-      error: undefined,
-    });
+  const handleLoadFromHistory = useCallback((content: string, format: FormatType) => {
+    setJsonInput(content);
+    setFormatType(format);
+    setAllNodes([]);
+    setError(undefined);
     parseInput(content);
-  }, [updateActiveTab, parseInput]);
+  }, [parseInput]);
   
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   
