@@ -12,23 +12,44 @@ interface HistoryModalProps {
 
 export function HistoryModal({ isOpen, onClose, onLoad }: HistoryModalProps) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     if (isOpen) {
-      setHistory(getHistory());
+      loadHistory();
     }
   }, [isOpen]);
   
-  const handleDelete = (id: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    deleteHistoryEntry(id);
-    setHistory(getHistory());
+  const loadHistory = async () => {
+    setLoading(true);
+    try {
+      const entries = await getHistory();
+      setHistory(entries);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const handleClearAll = () => {
+  const handleDelete = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await deleteHistoryEntry(id);
+      await loadHistory();
+    } catch (error) {
+      console.error('Failed to delete history entry:', error);
+    }
+  };
+  
+  const handleClearAll = async () => {
     if (window.confirm('Are you sure you want to clear all history?')) {
-      clearAllHistory();
-      setHistory([]);
+      try {
+        await clearAllHistory();
+        setHistory([]);
+      } catch (error) {
+        console.error('Failed to clear history:', error);
+      }
     }
   };
   
@@ -73,7 +94,11 @@ export function HistoryModal({ isOpen, onClose, onLoad }: HistoryModalProps) {
           </div>
           
           <div className="modal-body">
-            {history.length === 0 ? (
+            {loading ? (
+              <div className="empty-state">
+                <p>Loading history...</p>
+              </div>
+            ) : history.length === 0 ? (
               <div className="empty-state">
                 <p>No history yet</p>
                 <p className="empty-state-hint">

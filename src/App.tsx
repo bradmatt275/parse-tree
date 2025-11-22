@@ -28,7 +28,7 @@ import {
   TreeNode,
 } from './jsonParser';
 import { HistoryModal } from './HistoryModal';
-import { saveToHistory } from './historyStorage';
+import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
 import { TabData, FormatType } from './types';
 
 type Theme = 'dark' | 'light';
@@ -213,6 +213,10 @@ function App() {
     if (!initializedRef.current && tabs.length === 0) {
       initializedRef.current = true;
       createNewTab('json');
+      // Migrate from localStorage to IndexedDB if needed
+      migrateFromLocalStorage().catch(err => {
+        console.error('Migration failed:', err);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
