@@ -7,7 +7,7 @@ import { getHistory, deleteHistoryEntry, clearAllHistory } from './historyStorag
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoad: (content: string, formatType: 'json' | 'xml') => void;
+  onLoad: (content: string, formatType: 'json' | 'xml', sessionId?: string) => void;
 }
 
 export function HistoryModal({ isOpen, onClose, onLoad }: HistoryModalProps) {
@@ -54,7 +54,7 @@ export function HistoryModal({ isOpen, onClose, onLoad }: HistoryModalProps) {
   };
   
   const handleLoad = (entry: HistoryEntry) => {
-    onLoad(entry.content, entry.formatType);
+    onLoad(entry.content, entry.formatType, entry.sessionId);
     onClose();
   };
   

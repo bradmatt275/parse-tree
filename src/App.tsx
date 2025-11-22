@@ -1,24 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sun, 
-  Moon, 
-  Search, 
-  ChevronUp, 
-  ChevronDown, 
-  FolderOpen, 
-  Zap, 
-  Copy, 
-  Trash2, 
-  ChevronsDown, 
-  ChevronsUp,
-  History,
-  X,
-  Plus
-} from 'lucide-react';
-import { VirtualTree } from './VirtualTree';
-import { CodeView, CodeViewRef } from './CodeView';
-import { VirtualizedInput } from './VirtualizedInput';
+import { CodeViewRef } from './CodeView';
 import {
   getVisibleNodes,
   toggleNode,
@@ -29,7 +10,13 @@ import {
 } from './jsonParser';
 import { HistoryModal } from './HistoryModal';
 import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
-import { TabData, FormatType } from './types';
+import { FormatType } from './types';
+import { Header } from './Header';
+import { Toolbar } from './Toolbar';
+import { InputSection } from './InputSection';
+import { OutputSection } from './OutputSection';
+import { useWebWorker } from './useWebWorker';
+import { useTabManager } from './useTabManager';
 
 type Theme = 'dark' | 'light';
 type ViewMode = 'tree' | 'code';
@@ -73,58 +60,27 @@ const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 </catalog>`;
 
 function App() {
-  // Multi-tab state
-  const [tabs, setTabs] = useState<TabData[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string>('');
-  
-  // Active tab content (direct state for reactivity - synced with tabs)
-  const [jsonInput, setJsonInputState] = useState<string>(SAMPLE_JSON);
-  const [allNodes, setAllNodesState] = useState<TreeNode[]>([]);
-  const [error, setErrorState] = useState<string | undefined>();
-  const [formatType, setFormatTypeState] = useState<FormatType>('json');
-  
-  // Get active tab
-  const activeTab = useMemo(() => 
-    tabs.find(tab => tab.id === activeTabId),
-    [tabs, activeTabId]
-  );
-  
-  // Setters that update both state and tabs
-  const setJsonInput = useCallback((content: string) => {
-    setJsonInputState(content);
-    if (activeTabId) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId ? { ...tab, content } : tab
-      ));
-    }
-  }, [activeTabId]);
-  
-  const setAllNodes = useCallback((nodes: TreeNode[]) => {
-    setAllNodesState(nodes);
-    if (activeTabId) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId ? { ...tab, nodes } : tab
-      ));
-    }
-  }, [activeTabId]);
-  
-  const setError = useCallback((error: string | undefined) => {
-    setErrorState(error);
-    if (activeTabId) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId ? { ...tab, error } : tab
-      ));
-    }
-  }, [activeTabId]);
-  
-  const setFormatType = useCallback((formatType: FormatType) => {
-    setFormatTypeState(formatType);
-    if (activeTabId) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId ? { ...tab, formatType } : tab
-      ));
-    }
-  }, [activeTabId]);
+  // Tab management
+  const {
+    tabs,
+    activeTabId,
+    jsonInput,
+    allNodes,
+    error,
+    formatType,
+    currentSessionId,
+    currentSessionIdRef,
+    setJsonInput,
+    setAllNodes,
+    setError,
+    setFormatType,
+    setActiveTabId,
+    setTabs,
+    createNewTab,
+    closeTab,
+    updateTabTitle,
+    initializedRef,
+  } = useTabManager();
   
   // UI state
   const [theme, setTheme] = useState<Theme>('dark');
@@ -138,10 +94,8 @@ function App() {
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   
-  
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const workerRef = useRef<Worker | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const expansionDebounceRef = useRef<number | null>(null);
   const treeRef = useRef<any>(null);
@@ -149,66 +103,7 @@ function App() {
   const isExpandingRef = useRef<boolean>(false);
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
-  const initializedRef = useRef<boolean>(false);
   const mountParseRef = useRef<boolean>(false);
-  const currentSessionIdRef = useRef<string | undefined>(undefined);
-  
-  // Tab management functions
-  const createNewTab = useCallback((formatType: FormatType = 'json') => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    const newTab: TabData = {
-      id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-      title: `Untitled-${tabs.length + 1}.${formatType}`,
-      formatType,
-      content: formatType === 'json' ? SAMPLE_JSON : SAMPLE_XML,
-      nodes: [],
-      error: undefined,
-      sessionId,
-    };
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-    return newTab.id;
-  }, [tabs.length]);
-  
-  const closeTab = useCallback((tabId: string) => {
-    setTabs(prev => {
-      const filtered = prev.filter(tab => tab.id !== tabId);
-      
-      // If closing active tab, switch to another tab
-      if (activeTabId === tabId && filtered.length > 0) {
-        const currentIndex = prev.findIndex(tab => tab.id === tabId);
-        const newActiveIndex = currentIndex > 0 ? currentIndex - 1 : 0;
-        setActiveTabId(filtered[newActiveIndex].id);
-      } else if (filtered.length === 0) {
-        // If no tabs left, create a new one
-        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-        const newTab: TabData = {
-          id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-          title: 'Untitled-1.json',
-          formatType: 'json',
-          content: SAMPLE_JSON,
-          nodes: [],
-          error: undefined,
-          sessionId,
-        };
-        setActiveTabId(newTab.id);
-        return [newTab];
-      }
-      
-      return filtered;
-    });
-  }, [activeTabId]);
-  
-  // Sync active tab data to state when switching tabs
-  useEffect(() => {
-    if (activeTab) {
-      setJsonInputState(activeTab.content);
-      setAllNodesState(activeTab.nodes);
-      setErrorState(activeTab.error);
-      setFormatTypeState(activeTab.formatType);
-      currentSessionIdRef.current = activeTab.sessionId;
-    }
-  }, [activeTab?.id]); // Only trigger when tab ID changes (switching tabs)
   
   // Initialize with one tab
   useEffect(() => {
@@ -223,8 +118,70 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
+  // Web Worker callbacks (memoized to prevent worker recreation)
+  const onParseSuccess = useCallback((nodes: TreeNode[], originalInput?: string) => {
+    setAllNodes(nodes);
+    setError(undefined);
+    setIsProcessing(false);
+    setProcessingMessage('Processing JSON...');
+    
+    // Save to history on successful parse (skip if it's the default sample)
+    if (originalInput && originalInput.trim() && originalInput !== SAMPLE_JSON) {
+      const sessionId = currentSessionIdRef.current;
+      saveToHistory(originalInput, 'json', sessionId);
+    }
+  }, [setAllNodes, setError]);
+  
+  const onParseError = useCallback((err: string) => {
+    setError(err);
+    setAllNodes([]);
+    setIsProcessing(false);
+    setProcessingMessage('Processing JSON...');
+  }, [setError, setAllNodes]);
+  
+  const onParseProgress = useCallback((message: string) => {
+    setProcessingMessage(message);
+  }, []);
+  
+  const onExpandSuccess = useCallback((nodes: TreeNode[]) => {
+    setAllNodes(nodes);
+    isExpandingRef.current = false;
+    
+    // If there's a pending scroll, execute it now
+    if (pendingScrollRef.current && treeRef.current?.scrollToNode) {
+      const nodeId = pendingScrollRef.current;
+      pendingScrollRef.current = null;
+      setTimeout(() => {
+        treeRef.current?.scrollToNode(nodeId);
+      }, 50);
+    }
+  }, [setAllNodes]);
+  
+  const onExpandError = useCallback((err: string) => {
+    console.error('Expand error:', err);
+    isExpandingRef.current = false;
+    pendingScrollRef.current = null;
+  }, []);
+  
+  // Web Worker for JSON parsing
+  const { parseJson, expandToMatches } = useWebWorker({
+    onParseSuccess,
+    onParseError,
+    onParseProgress,
+    onExpandSuccess,
+    onExpandError,
+  });
+  
   // Parse input based on format type
   const parseInput = useCallback((input: string) => {
+    // Don't process empty input
+    if (!input || !input.trim()) {
+      setAllNodes([]);
+      setError(undefined);
+      setIsProcessing(false);
+      return;
+    }
+    
     setIsProcessing(true);
     setError(undefined);
     
@@ -364,7 +321,6 @@ function App() {
         
         // Save to history on successful parse (skip if it's the default sample)
         if (input.trim() && input !== SAMPLE_XML) {
-          // Use current tab's sessionId to ensure all edits update the same history entry
           const sessionId = currentSessionIdRef.current;
           saveToHistory(input, 'xml', sessionId);
         }
@@ -375,12 +331,9 @@ function App() {
       }
     } else {
       // Use Web Worker for JSON parsing
-      workerRef.current?.postMessage({
-        type: 'PARSE_JSON',
-        data: input
-      });
+      parseJson(input);
     }
-  }, [formatType]);
+  }, [formatType, parseJson, currentSessionId]);
   
   // Auto-format with debounce when tab content or format changes
   useEffect(() => {
@@ -412,60 +365,9 @@ function App() {
     };
   }, [jsonInput, formatType, parseInput]);
   
-  // Initialize Web Worker
-  useEffect(() => {
-    workerRef.current = new Worker('/worker.js');
-    
-    workerRef.current.onmessage = (e: MessageEvent) => {
-      const { type, nodes, error, message, originalInput } = e.data;
-      
-      if (type === 'PARSE_SUCCESS') {
-        setAllNodes(nodes);
-        setError(undefined);
-        setIsProcessing(false);
-        setProcessingMessage('Processing JSON...');
-        
-        // Save to history on successful parse (skip if it's the default sample)
-        // Use originalInput from the worker instead of jsonInput state to avoid closure issues
-        if (originalInput && originalInput.trim() && originalInput !== SAMPLE_JSON) {
-          // Use current tab's sessionId to ensure all edits update the same history entry
-          const sessionId = currentSessionIdRef.current;
-          saveToHistory(originalInput, 'json', sessionId);
-        }
-      } else if (type === 'PARSE_ERROR') {
-        setError(error);
-        setAllNodes([]);
-        setIsProcessing(false);
-        setProcessingMessage('Processing JSON...');
-      } else if (type === 'PARSE_PROGRESS') {
-        setProcessingMessage(message);
-      } else if (type === 'EXPAND_SUCCESS') {
-        setAllNodes(nodes);
-        isExpandingRef.current = false;
-        
-        // If there's a pending scroll, execute it now
-        if (pendingScrollRef.current && treeRef.current?.scrollToNode) {
-          const nodeId = pendingScrollRef.current;
-          pendingScrollRef.current = null;
-          setTimeout(() => {
-            treeRef.current?.scrollToNode(nodeId);
-          }, 50);
-        }
-      } else if (type === 'EXPAND_ERROR') {
-        console.error('Expand error:', error);
-        isExpandingRef.current = false;
-        pendingScrollRef.current = null;
-      }
-    };
-    
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
-  
   // Parse on mount (like original code)
   useEffect(() => {
-    if (jsonInput) {
+    if (jsonInput && jsonInput.trim() && tabs.length > 0) {
       mountParseRef.current = true;
       parseInput(jsonInput);
       // Reset flag after a short delay so subsequent changes trigger auto-format
@@ -479,7 +381,7 @@ function App() {
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tabs.length]);
   
   // Update container height on resize
   useEffect(() => {
@@ -530,10 +432,7 @@ function App() {
             isExpandingRef.current = true;
             pendingScrollRef.current = matchIdsArray[0];
             
-            workerRef.current?.postMessage({
-              type: 'EXPAND_TO_MATCHES',
-              data: { nodes: allNodes, matchIds: matchIdsArray }
-            });
+            expandToMatches(allNodes, matchIdsArray);
           }, 500); // Wait 500ms after user stops typing
         }
       }
@@ -543,7 +442,7 @@ function App() {
       setCurrentMatchIndex(-1);
       lastSearchQueryRef.current = '';
     }
-  }, [searchQuery, allNodes]);
+  }, [searchQuery, allNodes, expandToMatches]);
   
   const handleFormatChange = useCallback((newFormat: FormatType) => {
     // Update active tab format type and content
@@ -554,15 +453,14 @@ function App() {
     setError(undefined);
     
     // Update tab title
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId
-        ? { ...tab, title: `Untitled-${prev.findIndex(t => t.id === activeTabId) + 1}.${newFormat}` }
-        : tab
-    ));
+    const tabIndex = tabs.findIndex(t => t.id === activeTabId);
+    if (tabIndex !== -1) {
+      updateTabTitle(activeTabId, `Untitled-${tabIndex + 1}.${newFormat}`);
+    }
     
     setProcessingMessage(newFormat === 'xml' ? 'Processing XML...' : 'Processing JSON...');
     setSearchQuery('');
-  }, [activeTabId]);
+  }, [activeTabId, tabs, setFormatType, setJsonInput, setAllNodes, setError, updateTabTitle]);
   
   const handleFormat = useCallback(() => {
     if (!jsonInput.trim()) {
@@ -582,10 +480,6 @@ function App() {
     
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      
-      // Use existing tab sessionId - don't generate new one
-      // This ensures all edits in this tab update the same history entry
-      
       setJsonInput(text);
       parseInput(text);
     };
@@ -596,19 +490,19 @@ function App() {
     };
     
     reader.readAsText(file);
-  }, [formatType, parseInput, activeTabId]);
+  }, [parseInput, setJsonInput]);
   
   const handleToggle = useCallback((nodeId: string) => {
     setAllNodes(toggleNode(allNodes, nodeId));
-  }, [allNodes]);
+  }, [allNodes, setAllNodes]);
   
   const handleExpandAll = useCallback(() => {
     setAllNodes(expandAll(allNodes));
-  }, [allNodes]);
+  }, [allNodes, setAllNodes]);
   
   const handleCollapseAll = useCallback(() => {
     setAllNodes(collapseAll(allNodes));
-  }, [allNodes]);
+  }, [allNodes, setAllNodes]);
   
   const handleNextMatch = useCallback(() => {
     if (matchIds.length > 0) {
@@ -661,7 +555,7 @@ function App() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [setJsonInput, setAllNodes, setError]);
   
   const handleLoadFile = useCallback(() => {
     fileInputRef.current?.click();
@@ -673,23 +567,27 @@ function App() {
     // If paste is large (> 100KB), handle it specially
     if (pastedText.length > 100000) {
       event.preventDefault();
-      
       setJsonInput(pastedText);
       parseInput(pastedText);
     }
     // For small pastes, let default behavior handle it
-  }, [formatType, parseInput]);
+  }, [parseInput, setJsonInput]);
   
-  const handleLoadFromHistory = useCallback((content: string, format: FormatType) => {
-    // Use existing tab sessionId - don't generate new one
-    // This ensures all edits in this tab update the same history entry
-    
+  const handleLoadFromHistory = useCallback((content: string, format: FormatType, sessionId?: string) => {
     setJsonInput(content);
     setFormatType(format);
     setAllNodes([]);
     setError(undefined);
+    
+    // Update the active tab's sessionId to continue editing the same history entry
+    if (sessionId && activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, sessionId } : tab
+      ));
+    }
+    
     parseInput(content);
-  }, [parseInput]);
+  }, [parseInput, setJsonInput, setFormatType, setAllNodes, setError, activeTabId, setTabs]);
   
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   
@@ -747,316 +645,86 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Calculate search match count for toolbar
+  const searchMatchCount = useMemo(() => {
+    if (viewMode === 'tree') {
+      return matchIds.length;
+    } else {
+      // For code view
+      if (!formattedCode || !searchQuery) return 0;
+      const lines = formattedCode.split('\n');
+      return lines.filter(line => 
+        line.toLowerCase().includes(searchQuery.toLowerCase())
+      ).length;
+    }
+  }, [viewMode, matchIds.length, formattedCode, searchQuery]);
   
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="header-left">
-          <div className="app-logo">
-            <Zap className="logo-icon" size={18} />
-            <span className="logo-text">Formatter Pro</span>
-          </div>
-        </div>
-        
-        <div className="header-center">
-          <div className="tabs-container">
-            {tabs.map((tab) => (
-              <div 
-                key={tab.id}
-                className={`tab ${tab.id === activeTabId ? 'active' : ''}`}
-                onClick={() => setActiveTabId(tab.id)}
-              >
-                <span className="tab-icon">{tab.formatType === 'json' ? '{}' : '<>'}</span>
-                <span className="tab-title">{tab.title}</span>
-                <button 
-                  className="tab-close"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeTab(tab.id);
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            <button 
-              className="tab-add" 
-              onClick={() => createNewTab('json')}
-              title="New Tab"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-        </div>
+      <Header
+        tabs={tabs}
+        activeTabId={activeTabId}
+        theme={theme}
+        onTabChange={setActiveTabId}
+        onTabClose={closeTab}
+        onNewTab={() => createNewTab('json')}
+        onToggleTheme={toggleTheme}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+      />
 
-        <div className="header-right">
-          <button 
-            className="icon-button" 
-            onClick={() => setIsHistoryOpen(true)}
-            title="History"
-          >
-            <History size={18} />
-          </button>
-          <button 
-            className="icon-button" 
-            onClick={toggleTheme} 
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
-      </header>
-
-      <div className="app-toolbar">
-        <div className="toolbar-group">
-          <div className="toggle-group">
-            <button 
-              className={`toggle-btn ${formatType === 'json' ? 'active' : ''}`}
-              onClick={() => handleFormatChange('json')}
-            >
-              JSON
-            </button>
-            <button 
-              className={`toggle-btn ${formatType === 'xml' ? 'active' : ''}`}
-              onClick={() => handleFormatChange('xml')}
-            >
-              XML
-            </button>
-          </div>
-          
-          <div className="divider"></div>
-          
-          <div className="toggle-group">
-            <button 
-              className={`toggle-btn ${viewMode === 'tree' ? 'active' : ''}`}
-              onClick={() => setViewMode('tree')}
-            >
-              Tree
-            </button>
-            <button 
-              className={`toggle-btn ${viewMode === 'code' ? 'active' : ''}`}
-              onClick={() => setViewMode('code')}
-            >
-              Code
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-group search-group">
-          <div className="search-box">
-            <Search className="search-icon" size={16} />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              disabled={isProcessing}
-            />
-            {(searchMatches.size > 0 || (viewMode === 'code' && searchQuery)) && (
-              <div className="search-actions">
-                <span className="match-count">
-                  {viewMode === 'tree' 
-                    ? `${matchIds.length > 0 ? currentMatchIndex + 1 : 0}/${matchIds.length}`
-                    : (() => {
-                        if (!formattedCode) return '0/0';
-                        const lines = formattedCode.split('\n');
-                        const matchCount = lines.filter(line => 
-                          line.toLowerCase().includes(searchQuery.toLowerCase())
-                        ).length;
-                        return matchCount > 0 ? `${currentMatchIndex + 1}/${matchCount}` : '0/0';
-                      })()
-                  }
-                </span>
-                <div className="search-nav-btns">
-                  <button onClick={handlePreviousMatch} title="Previous (Shift+Enter)">
-                    <ChevronUp size={14} />
-                  </button>
-                  <button onClick={handleNextMatch} title="Next (Enter)">
-                    <ChevronDown size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="toolbar-group actions-group">
-          <button className="tool-btn" onClick={handleLoadFile} disabled={isProcessing} title="Load File">
-            <FolderOpen className="btn-icon" size={16} />
-            <span className="btn-text">Load</span>
-          </button>
-          <button className="tool-btn primary" onClick={handleFormat} disabled={isProcessing} title="Format">
-            <Zap className="btn-icon" size={16} />
-            <span className="btn-text">Format</span>
-          </button>
-          
-          <div className="divider"></div>
-          
-          {viewMode === 'tree' && (
-            <>
-              <button className="tool-btn icon-only" onClick={handleExpandAll} disabled={isProcessing} title="Expand All">
-                <ChevronsDown size={16} />
-              </button>
-              <button className="tool-btn icon-only" onClick={handleCollapseAll} disabled={isProcessing} title="Collapse All">
-                <ChevronsUp size={16} />
-              </button>
-              <div className="divider"></div>
-            </>
-          )}
-          
-          <button className="tool-btn icon-only" onClick={handleCopy} disabled={!!error || allNodes.length === 0 || isProcessing} title="Copy to Clipboard">
-            <Copy size={16} />
-          </button>
-          <button className="tool-btn icon-only danger" onClick={handleClear} disabled={isProcessing} title="Clear All">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
+      <Toolbar
+        formatType={formatType}
+        viewMode={viewMode}
+        searchQuery={searchQuery}
+        searchMatchCount={searchMatchCount}
+        currentMatchIndex={currentMatchIndex}
+        isProcessing={isProcessing}
+        hasError={!!error}
+        hasNodes={allNodes.length > 0}
+        onFormatChange={handleFormatChange}
+        onViewModeChange={setViewMode}
+        onSearchChange={setSearchQuery}
+        onSearchKeyDown={handleSearchKeyDown}
+        onPreviousMatch={handlePreviousMatch}
+        onNextMatch={handleNextMatch}
+        onLoadFile={handleLoadFile}
+        onFormat={handleFormat}
+        onExpandAll={handleExpandAll}
+        onCollapseAll={handleCollapseAll}
+        onCopy={handleCopy}
+        onClear={handleClear}
+      />
       
       <div className="content">
-        <motion.div 
-          className="input-section"
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.4, type: "spring", stiffness: 80 }}
-        >
-          <motion.div 
-            className="input-header"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            Input {formatType.toUpperCase()}
-            {jsonInput && (
-              <span style={{ marginLeft: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                {(jsonInput.length / 1024 / 1024).toFixed(2)} MB
-              </span>
-            )}
-          </motion.div>
-          <div className="textarea-container">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={formatType === 'xml' ? '.xml,text/xml,application/xml' : '.json,application/json'}
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-            />
-            {jsonInput.length > 100000 ? (
-              <VirtualizedInput
-                value={jsonInput}
-                onChange={setJsonInput}
-                placeholder="Paste your JSON here or use 'Load File' button for large files..."
-                className="json-input"
-              />
-            ) : (
-              <textarea
-                className="json-input"
-                value={jsonInput}
-                onChange={(e) => setJsonInput(e.target.value)}
-                onPaste={handlePaste}
-                placeholder="Paste your JSON here or use 'Load File' button for large files..."
-                spellCheck={false}
-                disabled={isProcessing}
-              />
-            )}
-          </div>
-        </motion.div>
+        <InputSection
+          formatType={formatType}
+          jsonInput={jsonInput}
+          isProcessing={isProcessing}
+          fileInputRef={fileInputRef}
+          onInputChange={setJsonInput}
+          onFileUpload={handleFileUpload}
+          onPaste={handlePaste}
+        />
         
-        <motion.div 
-          className="output-section"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.4, type: "spring", stiffness: 80 }}
-        >
-          <motion.div 
-            className="output-header"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            Formatted Output
-            {viewMode === 'tree' && visibleNodes.length > 0 && (
-              <span style={{ marginLeft: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
-                {visibleNodes.length} visible / {allNodes.length} total nodes
-              </span>
-            )}
-          </motion.div>
-          <div className="tree-container" ref={outputRef}>
-            <AnimatePresence mode="wait">
-              {isProcessing ? (
-                <motion.div 
-                  className="processing-indicator"
-                  key="processing"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                >
-                  <motion.div 
-                    className="spinner"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    {processingMessage}
-                  </motion.p>
-                </motion.div>
-              ) : error ? (
-                <motion.div 
-                  className="error-message"
-                  key="error"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                >
-                  <strong>Error parsing JSON:</strong>
-                  <br />
-                  {error}
-                </motion.div>
-              ) : viewMode === 'tree' ? (
-                <motion.div
-                  key="tree"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ height: '100%' }}
-                >
-                  <VirtualTree
-                    ref={treeRef}
-                    nodes={visibleNodes}
-                    onToggle={handleToggle}
-                    searchMatches={searchMatches}
-                    currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
-                    height={containerHeight}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="code"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{ height: '100%' }}
-                >
-                  <CodeView 
-                    ref={codeViewRef}
-                    code={formattedCode} 
-                    searchQuery={searchQuery}
-                    currentMatchLine={currentMatchLine}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.div>
+        <OutputSection
+          viewMode={viewMode}
+          isProcessing={isProcessing}
+          processingMessage={processingMessage}
+          error={error}
+          visibleNodes={visibleNodes}
+          allNodes={allNodes}
+          containerHeight={containerHeight}
+          formattedCode={formattedCode}
+          searchMatches={searchMatches}
+          currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
+          searchQuery={searchQuery}
+          currentMatchLine={currentMatchLine}
+          outputRef={outputRef}
+          treeRef={treeRef}
+          codeViewRef={codeViewRef}
+          onToggle={handleToggle}
+        />
       </div>
       
       <HistoryModal
