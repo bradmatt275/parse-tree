@@ -77,15 +77,20 @@ function App() {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   
-  // Active tab data (kept as state for reactivity)
-  const [jsonInputState, setJsonInputState] = useState<string>(SAMPLE_JSON);
-  const [allNodesState, setAllNodesState] = useState<TreeNode[]>([]);
-  const [errorState, setErrorState] = useState<string | undefined>();
-  const [formatTypeState, setFormatTypeState] = useState<FormatType>('json');
+  // Get active tab
+  const activeTab = useMemo(() => 
+    tabs.find(tab => tab.id === activeTabId),
+    [tabs, activeTabId]
+  );
   
-  // Wrapped setters that also update tabs
+  // Active tab data (derived from tabs, not state)
+  const jsonInput = useMemo(() => activeTab?.content || '', [activeTab]);
+  const allNodes = useMemo(() => activeTab?.nodes || [], [activeTab]);
+  const error = useMemo(() => activeTab?.error, [activeTab]);
+  const formatType = useMemo(() => activeTab?.formatType || 'json', [activeTab]);
+  
+  // Setters that update tabs
   const setJsonInput = useCallback((content: string) => {
-    setJsonInputState(content);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, content } : tab
@@ -94,7 +99,6 @@ function App() {
   }, [activeTabId]);
   
   const setAllNodes = useCallback((nodes: TreeNode[]) => {
-    setAllNodesState(nodes);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, nodes } : tab
@@ -103,7 +107,6 @@ function App() {
   }, [activeTabId]);
   
   const setError = useCallback((error: string | undefined) => {
-    setErrorState(error);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, error } : tab
@@ -112,19 +115,12 @@ function App() {
   }, [activeTabId]);
   
   const setFormatType = useCallback((formatType: FormatType) => {
-    setFormatTypeState(formatType);
     if (activeTabId) {
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId ? { ...tab, formatType } : tab
       ));
     }
   }, [activeTabId]);
-  
-  // Expose the state values
-  const jsonInput = jsonInputState;
-  const allNodes = allNodesState;
-  const error = errorState;
-  const formatType = formatTypeState;
   
   // UI state
   const [theme, setTheme] = useState<Theme>('dark');
@@ -138,25 +134,6 @@ function App() {
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   
-  // Get active tab
-  const activeTab = useMemo(() => 
-    tabs.find(tab => tab.id === activeTabId),
-    [tabs, activeTabId]
-  );
-  
-  // Sync active tab data to state when active tab changes (but ignore if it's our own update)
-  const syncingRef = useRef(false);
-  useEffect(() => {
-    if (activeTab && !syncingRef.current) {
-      syncingRef.current = true;
-      setJsonInputState(activeTab.content);
-      setAllNodesState(activeTab.nodes);
-      setErrorState(activeTab.error);
-      setFormatTypeState(activeTab.formatType);
-      setTimeout(() => { syncingRef.current = false; }, 0);
-    }
-  }, [activeTab]);
-  
   
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,6 +146,7 @@ function App() {
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
   const initializedRef = useRef<boolean>(false);
+  const initialParsedRef = useRef<boolean>(false);
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
@@ -450,6 +428,16 @@ function App() {
       workerRef.current?.terminate();
     };
   }, []);
+  
+  // Parse initial content once tabs are created
+  useEffect(() => {
+    if (!initialParsedRef.current && tabs.length === 1 && tabs[0].nodes.length === 0 && tabs[0].content) {
+      // This is the initial tab with sample content, parse it
+      initialParsedRef.current = true;
+      parseInput(tabs[0].content);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs.length]); // Only run when first tab is created
   
   // Update container height on resize
   useEffect(() => {
