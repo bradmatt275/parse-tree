@@ -564,196 +564,138 @@ function App() {
   
   return (
     <div className="app">
-      <motion.header 
-        className="header"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      >
-        <motion.h1 
-          className="header-title"
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-        >
-          {formatType === 'json' ? 'JSON' : 'XML'} Formatter Pro
-        </motion.h1>
-        <motion.div 
-          className="header-controls"
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
-        >
-          <div className="view-toggle">
-            <motion.button 
-              className={`view-toggle-btn ${formatType === 'json' ? 'active' : ''}`}
+      <header className="app-header">
+        <div className="header-left">
+          <div className="app-logo">
+            <span className="logo-icon">⚡</span>
+            <span className="logo-text">Formatter Pro</span>
+          </div>
+        </div>
+        
+        <div className="header-center">
+          <div className="tabs-container">
+            <div className="tab active">
+              <span className="tab-icon">{formatType === 'json' ? '{}' : '<>'}</span>
+              <span className="tab-title">Untitled-1.{formatType}</span>
+              <button className="tab-close">×</button>
+            </div>
+            <button className="tab-add" title="New Tab (Coming Soon)">+</button>
+          </div>
+        </div>
+
+        <div className="header-right">
+          <button 
+            className="icon-button" 
+            onClick={toggleTheme} 
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
+      </header>
+
+      <div className="app-toolbar">
+        <div className="toolbar-group">
+          <div className="toggle-group">
+            <button 
+              className={`toggle-btn ${formatType === 'json' ? 'active' : ''}`}
               onClick={() => handleFormatChange('json')}
-              title="JSON Format"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               JSON
-            </motion.button>
-            <motion.button 
-              className={`view-toggle-btn ${formatType === 'xml' ? 'active' : ''}`}
+            </button>
+            <button 
+              className={`toggle-btn ${formatType === 'xml' ? 'active' : ''}`}
               onClick={() => handleFormatChange('xml')}
-              title="XML Format"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               XML
-            </motion.button>
+            </button>
           </div>
-          <div className="view-toggle">
-            <motion.button 
-              className={`view-toggle-btn ${viewMode === 'tree' ? 'active' : ''}`}
+          
+          <div className="divider"></div>
+          
+          <div className="toggle-group">
+            <button 
+              className={`toggle-btn ${viewMode === 'tree' ? 'active' : ''}`}
               onClick={() => setViewMode('tree')}
-              title="Tree View"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
-              🌳 Tree
-            </motion.button>
-            <motion.button 
-              className={`view-toggle-btn ${viewMode === 'code' ? 'active' : ''}`}
+              Tree
+            </button>
+            <button 
+              className={`toggle-btn ${viewMode === 'code' ? 'active' : ''}`}
               onClick={() => setViewMode('code')}
-              title="Code View"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
-              {'{ }'} Code
-            </motion.button>
+              Code
+            </button>
           </div>
-          <div className="search-container">
+        </div>
+
+        <div className="toolbar-group search-group">
+          <div className="search-box">
+            <span className="search-icon">🔍</span>
             <input
               type="text"
-              className="search-input"
-              placeholder="Search keys/values..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               disabled={isProcessing}
             />
-            {searchMatches.size > 0 && viewMode === 'tree' && (
-              <div className="search-navigation">
-                <span className="search-results">
-                  {currentMatchIndex + 1} / {matchIds.length}
+            {(searchMatches.size > 0 || (viewMode === 'code' && searchQuery)) && (
+              <div className="search-actions">
+                <span className="match-count">
+                  {viewMode === 'tree' 
+                    ? `${matchIds.length > 0 ? currentMatchIndex + 1 : 0}/${matchIds.length}`
+                    : (() => {
+                        if (!formattedCode) return '0/0';
+                        const lines = formattedCode.split('\n');
+                        const matchCount = lines.filter(line => 
+                          line.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).length;
+                        return matchCount > 0 ? `${currentMatchIndex + 1}/${matchCount}` : '0/0';
+                      })()
+                  }
                 </span>
-                <button 
-                  className="nav-btn" 
-                  onClick={handlePreviousMatch}
-                  title="Previous match (Shift+Enter)"
-                  disabled={matchIds.length === 0}
-                >
-                  ▲
-                </button>
-                <button 
-                  className="nav-btn" 
-                  onClick={handleNextMatch}
-                  title="Next match (Enter)"
-                  disabled={matchIds.length === 0}
-                >
-                  ▼
-                </button>
-              </div>
-            )}
-            {searchQuery && viewMode === 'code' && formattedCode && (
-              <div className="search-navigation">
-                <span className="search-results">
-                  {(() => {
-                    const lines = formattedCode.split('\\n');
-                    const matchCount = lines.filter(line => 
-                      line.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).length;
-                    return matchCount > 0 ? `${currentMatchIndex + 1} / ${matchCount}` : '0 / 0';
-                  })()}
-                </span>
-                <button 
-                  className="nav-btn" 
-                  onClick={handlePreviousMatch}
-                  title="Previous match (Shift+Enter)"
-                >
-                  ▲
-                </button>
-                <button 
-                  className="nav-btn" 
-                  onClick={handleNextMatch}
-                  title="Next match (Enter)"
-                >
-                  ▼
-                </button>
+                <div className="search-nav-btns">
+                  <button onClick={handlePreviousMatch} title="Previous (Shift+Enter)">▲</button>
+                  <button onClick={handleNextMatch} title="Next (Enter)">▼</button>
+                </div>
               </div>
             )}
           </div>
-          <motion.button 
-            className="btn" 
-            onClick={handleLoadFile} 
-            disabled={isProcessing}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            📁 Load File
-          </motion.button>
-          <motion.button 
-            className="btn" 
-            onClick={handleFormat} 
-            disabled={isProcessing}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {isProcessing ? 'Processing...' : 'Format'}
-          </motion.button>
+        </div>
+
+        <div className="toolbar-group actions-group">
+          <button className="tool-btn" onClick={handleLoadFile} disabled={isProcessing} title="Load File">
+            <span className="btn-icon">📂</span>
+            <span className="btn-text">Load</span>
+          </button>
+          <button className="tool-btn primary" onClick={handleFormat} disabled={isProcessing} title="Format">
+            <span className="btn-icon">⚡</span>
+            <span className="btn-text">Format</span>
+          </button>
+          
+          <div className="divider"></div>
+          
           {viewMode === 'tree' && (
             <>
-              <motion.button 
-                className="btn btn-secondary" 
-                onClick={handleExpandAll} 
-                disabled={isProcessing}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Expand All
-              </motion.button>
-              <motion.button 
-                className="btn btn-secondary" 
-                onClick={handleCollapseAll} 
-                disabled={isProcessing}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Collapse All
-              </motion.button>
+              <button className="tool-btn icon-only" onClick={handleExpandAll} disabled={isProcessing} title="Expand All">
+                ⇊
+              </button>
+              <button className="tool-btn icon-only" onClick={handleCollapseAll} disabled={isProcessing} title="Collapse All">
+                ⇈
+              </button>
+              <div className="divider"></div>
             </>
           )}
-          <motion.button 
-            className="btn btn-secondary" 
-            onClick={handleCopy} 
-            disabled={!!error || allNodes.length === 0 || isProcessing}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Copy
-          </motion.button>
-          <motion.button 
-            className="btn btn-secondary" 
-            onClick={handleClear} 
-            disabled={isProcessing}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Clear
-          </motion.button>
-          <motion.button 
-            className="theme-toggle" 
-            onClick={toggleTheme} 
-            title="Toggle theme"
-            whileHover={{ scale: 1.1, rotate: 180 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </motion.button>
-        </motion.div>
-      </motion.header>
+          
+          <button className="tool-btn icon-only" onClick={handleCopy} disabled={!!error || allNodes.length === 0 || isProcessing} title="Copy to Clipboard">
+            📋
+          </button>
+          <button className="tool-btn icon-only danger" onClick={handleClear} disabled={isProcessing} title="Clear All">
+            🗑️
+          </button>
+        </div>
+      </div>
       
       <div className="content">
         <motion.div 
