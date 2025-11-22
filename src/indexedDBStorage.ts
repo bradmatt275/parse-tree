@@ -46,6 +46,8 @@ function initDB(): Promise<IDBDatabase> {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         // Create index for sorting by timestamp
         store.createIndex('timestamp', 'timestamp', { unique: false });
+        // Create index for session lookup
+        store.createIndex('sessionId', 'sessionId', { unique: false });
       }
     };
   });
@@ -60,10 +62,14 @@ export async function saveToHistory(content: string, formatType: FormatType, ses
     const preview = content.trim().substring(0, 100);
     const now = new Date();
     
-    // If sessionId is provided, check if this session already has an entry
+    // If sessionId is provided, check if this session already has an entry using index
     if (sessionId) {
-      const allEntries = await getHistory();
-      const existingEntry = allEntries.find(entry => entry.sessionId === sessionId);
+      const sessionIndex = store.index('sessionId');
+      const existingEntry = await new Promise<HistoryEntry | undefined>((resolve) => {
+        const request = sessionIndex.get(sessionId);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(undefined);
+      });
       
       if (existingEntry) {
         // Update existing entry
@@ -192,22 +198,44 @@ export async function getHistoryEntry(id: string): Promise<HistoryEntry | undefi
   }
 }
 
-// Helper function to cleanup old entries
+// Helper function to cleanup old entries using cursor-based approach
 async function cleanupOldEntries(): Promise<void> {
   try {
-    const allEntries = await getHistory();
+    const db = await initDB();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const index = store.index('timestamp');
     
-    if (allEntries.length > MAX_HISTORY_ENTRIES) {
-      const db = await initDB();
-      const transaction = db.transaction(STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
+    // Count total entries
+    const count = await new Promise<number>((resolve, reject) => {
+      const countRequest = store.count();
+      countRequest.onsuccess = () => resolve(countRequest.result);
+      countRequest.onerror = () => reject(countRequest.error);
+    });
+    
+    if (count > MAX_HISTORY_ENTRIES) {
+      // Calculate how many to delete
+      const toDelete = count - MAX_HISTORY_ENTRIES;
+      let deleted = 0;
       
-      // Delete entries beyond the limit
-      const entriesToDelete = allEntries.slice(MAX_HISTORY_ENTRIES);
-      
-      for (const entry of entriesToDelete) {
-        store.delete(entry.id);
-      }
+      // Use cursor on timestamp index to delete oldest entries
+      await new Promise<void>((resolve, reject) => {
+        const request = index.openCursor(null, 'next'); // Oldest first
+        
+        request.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          
+          if (cursor && deleted < toDelete) {
+            cursor.delete();
+            deleted++;
+            cursor.continue();
+          } else {
+            resolve();
+          }
+        };
+        
+        request.onerror = () => reject(request.error);
+      });
     }
   } catch (error) {
     console.error('Failed to cleanup old entries:', error);
@@ -236,9 +264,23 @@ export async function migrateFromLocalStorage(): Promise<void> {
     
     // Only migrate if IndexedDB is empty
     if (count === 0 && entries.length > 0) {
-      for (const entry of entries) {
-        store.put(entry);
-      }
+      // Put all entries and wait for transaction completion
+      const putPromises = entries.map(entry => 
+        new Promise<void>((resolve, reject) => {
+          const request = store.put(entry);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        })
+      );
+      
+      // Wait for all puts to complete
+      await Promise.all(putPromises);
+      
+      // Wait for transaction to complete
+      await new Promise<void>((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
       
       // Remove old localStorage data after successful migration
       localStorage.removeItem(HISTORY_KEY);
