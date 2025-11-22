@@ -14,6 +14,7 @@ import {
 
 type Theme = 'dark' | 'light';
 type ViewMode = 'tree' | 'code';
+type FormatType = 'json' | 'xml';
 
 const SAMPLE_JSON = `{
   "name": "JSON Formatter Pro",
@@ -33,12 +34,33 @@ const SAMPLE_JSON = `{
   "downloads": 1000000
 }`;
 
+const SAMPLE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+  <book id="bk101">
+    <author>Gambardella, Matthew</author>
+    <title>XML Developer's Guide</title>
+    <genre>Computer</genre>
+    <price>44.95</price>
+    <publish_date>2000-10-01</publish_date>
+    <description>An in-depth look at creating applications with XML.</description>
+  </book>
+  <book id="bk102">
+    <author>Ralls, Kim</author>
+    <title>Midnight Rain</title>
+    <genre>Fantasy</genre>
+    <price>5.95</price>
+    <publish_date>2000-12-16</publish_date>
+    <description>A former architect battles corporate zombies.</description>
+  </book>
+</catalog>`;
+
 function App() {
   const [jsonInput, setJsonInput] = useState<string>(SAMPLE_JSON);
   const [allNodes, setAllNodes] = useState<TreeNode[]>([]);
   const [error, setError] = useState<string | undefined>();
   const [theme, setTheme] = useState<Theme>('dark');
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
+  const [formatType, setFormatType] = useState<FormatType>('json');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchMatches, setSearchMatches] = useState<Set<string>>(new Set());
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
@@ -46,6 +68,7 @@ function App() {
   const [containerHeight, setContainerHeight] = useState<number>(600);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
+  
   
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +80,158 @@ function App() {
   const isExpandingRef = useRef<boolean>(false);
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
+  
+  // Parse input based on format type
+  const parseInput = useCallback((input: string) => {
+    setIsProcessing(true);
+    setError(undefined);
+    
+    if (formatType === 'xml') {
+      // Parse XML in main thread (DOMParser not available in workers)
+      try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(input, 'text/xml');
+        
+        // Check for parsing errors
+        const parserError = xmlDoc.querySelector('parsererror');
+        if (parserError) {
+          setError(parserError.textContent || 'Invalid XML');
+          setAllNodes([]);
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Build tree from XML
+        const nodes: TreeNode[] = [];
+        let nodeIdCounter = 0;
+        
+        function generateNodeId(): string {
+          return `node_${nodeIdCounter++}`;
+        }
+        
+        function buildXmlTree(element: Element | ChildNode, nodes: TreeNode[], depth: number, key: string, parentId?: string, path: string = ''): string {
+          const nodeId = generateNodeId();
+          
+          // Handle text nodes
+          if (element.nodeType === Node.TEXT_NODE) {
+            const textContent = element.textContent?.trim();
+            if (!textContent) return nodeId;
+            
+            const currentPath = path ? `${path}.text` : 'text';
+            nodes.push({
+              id: nodeId,
+              type: 'string',
+              key: undefined,
+              value: textContent,
+              depth,
+              isExpanded: false,
+              hasChildren: false,
+              parent: parentId,
+              path: currentPath,
+            });
+            return nodeId;
+          }
+          
+          // Handle element nodes
+          if (element.nodeType === Node.ELEMENT_NODE) {
+            const elem = element as Element;
+            const tagName = key || elem.tagName;
+            const currentPath = path ? `${path}.${tagName}` : tagName;
+            
+            const attributes = elem.attributes;
+            const childNodes = Array.from(elem.childNodes).filter(
+              node => node.nodeType === Node.ELEMENT_NODE || 
+                      (node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
+            );
+            
+            const hasChildren = attributes.length > 0 || childNodes.length > 0;
+            
+            nodes.push({
+              id: nodeId,
+              type: 'object',
+              key: tagName,
+              depth,
+              isExpanded: depth < 2,
+              hasChildren,
+              childCount: attributes.length + childNodes.length,
+              parent: parentId,
+              path: currentPath,
+            });
+            
+            // Add attributes
+            for (let i = 0; i < attributes.length; i++) {
+              const attr = attributes[i];
+              const attrNodeId = generateNodeId();
+              const attrPath = `${currentPath}.@${attr.name}`;
+              
+              nodes.push({
+                id: attrNodeId,
+                type: 'string',
+                key: `@${attr.name}`,
+                value: attr.value,
+                depth: depth + 1,
+                isExpanded: false,
+                hasChildren: false,
+                parent: nodeId,
+                path: attrPath,
+              });
+            }
+            
+            // Add child nodes
+            if (childNodes.length === 1 && childNodes[0].nodeType === Node.TEXT_NODE) {
+              const textContent = childNodes[0].textContent?.trim();
+              if (textContent) {
+                const textNodeId = generateNodeId();
+                const textPath = `${currentPath}.text`;
+                
+                nodes.push({
+                  id: textNodeId,
+                  type: 'string',
+                  key: undefined,
+                  value: textContent,
+                  depth: depth + 1,
+                  isExpanded: false,
+                  hasChildren: false,
+                  parent: nodeId,
+                  path: textPath,
+                });
+              }
+            } else {
+              childNodes.forEach((child) => {
+                buildXmlTree(child, nodes, depth + 1, '', nodeId, currentPath);
+              });
+            }
+            
+            return nodeId;
+          }
+          
+          return nodeId;
+        }
+        
+        const root = xmlDoc.documentElement;
+        if (!root) {
+          setError('No root element found');
+          setAllNodes([]);
+          setIsProcessing(false);
+          return;
+        }
+        
+        buildXmlTree(root, nodes, 0, '', undefined);
+        setAllNodes(nodes);
+        setIsProcessing(false);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Invalid XML');
+        setAllNodes([]);
+        setIsProcessing(false);
+      }
+    } else {
+      // Use Web Worker for JSON parsing
+      workerRef.current?.postMessage({
+        type: 'PARSE_JSON',
+        data: input
+      });
+    }
+  }, [formatType]);
   
   // Auto-format with debounce when jsonInput changes
   useEffect(() => {
@@ -74,13 +249,7 @@ function App() {
     
     // Set a new timer for debounced parsing (800ms delay)
     debounceTimerRef.current = window.setTimeout(() => {
-      setIsProcessing(true);
-      setError(undefined);
-      
-      workerRef.current?.postMessage({
-        type: 'PARSE_JSON',
-        data: jsonInput
-      });
+      parseInput(jsonInput);
     }, 800);
     
     // Cleanup function
@@ -89,7 +258,7 @@ function App() {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [jsonInput]);
+  }, [jsonInput, formatType, parseInput]);
   
   // Initialize Web Worker
   useEffect(() => {
@@ -147,14 +316,10 @@ function App() {
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
   
-  // Parse JSON on mount
+  // Parse on mount
   useEffect(() => {
     if (jsonInput) {
-      setIsProcessing(true);
-      workerRef.current?.postMessage({
-        type: 'PARSE_JSON',
-        data: jsonInput
-      });
+      parseInput(jsonInput);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -210,21 +375,32 @@ function App() {
     }
   }, [searchQuery, allNodes]);
   
+  const handleFormatChange = useCallback((newFormat: FormatType) => {
+    setFormatType(newFormat);
+    
+    // Clear current data and load sample for new format
+    if (newFormat === 'xml') {
+      setJsonInput(SAMPLE_XML);
+      setProcessingMessage('Processing XML...');
+    } else {
+      setJsonInput(SAMPLE_JSON);
+      setProcessingMessage('Processing JSON...');
+    }
+    
+    // Reset state
+    setAllNodes([]);
+    setError(undefined);
+    setSearchQuery('');
+  }, []);
+  
   const handleFormat = useCallback(() => {
     if (!jsonInput.trim()) {
-      setError('Please enter some JSON to format');
+      setError(`Please enter some ${formatType.toUpperCase()} to format`);
       return;
     }
     
-    setIsProcessing(true);
-    setError(undefined);
-    
-    // Use Web Worker for parsing
-    workerRef.current?.postMessage({
-      type: 'PARSE_JSON',
-      data: jsonInput
-    });
-  }, [jsonInput]);
+    parseInput(jsonInput);
+  }, [jsonInput, formatType, parseInput]);
   
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -236,12 +412,7 @@ function App() {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       setJsonInput(text);
-      
-      // Use Web Worker for parsing
-      workerRef.current?.postMessage({
-        type: 'PARSE_JSON',
-        data: text
-      });
+      parseInput(text);
     };
     
     reader.onerror = () => {
@@ -250,7 +421,7 @@ function App() {
     };
     
     reader.readAsText(file);
-  }, []);
+  }, [formatType, parseInput]);
   
   const handleToggle = useCallback((nodeId: string) => {
     setAllNodes(prev => toggleNode(prev, nodeId));
@@ -289,13 +460,19 @@ function App() {
   
   const handleCopy = useCallback(async () => {
     try {
-      const formatted = JSON.stringify(JSON.parse(jsonInput), null, 2);
+      let formatted: string;
+      if (formatType === 'xml') {
+        // For XML, just use the original input (already formatted)
+        formatted = jsonInput;
+      } else {
+        formatted = JSON.stringify(JSON.parse(jsonInput), null, 2);
+      }
       await navigator.clipboard.writeText(formatted);
       alert('Copied to clipboard!');
     } catch (err) {
       alert('Failed to copy to clipboard');
     }
-  }, [jsonInput]);
+  }, [jsonInput, formatType]);
   
   const toggleTheme = useCallback(() => {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
@@ -323,28 +500,24 @@ function App() {
       event.preventDefault();
       
       setJsonInput(pastedText);
-      setIsProcessing(true);
-      setError(undefined);
-      
-      // Parse immediately using Web Worker
-      workerRef.current?.postMessage({
-        type: 'PARSE_JSON',
-        data: pastedText
-      });
+      parseInput(pastedText);
     }
     // For small pastes, let default behavior handle it
-  }, []);
+  }, [formatType, parseInput]);
   
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   
   const formattedCode = useMemo(() => {
     if (error || allNodes.length === 0) return '';
     try {
+      if (formatType === 'xml') {
+        return jsonInput; // For XML, use the original input
+      }
       return JSON.stringify(JSON.parse(jsonInput), null, 2);
     } catch {
       return '';
     }
-  }, [jsonInput, error, allNodes.length]);
+  }, [jsonInput, error, allNodes.length, formatType]);
   
   // Scroll to current match
   useEffect(() => {
@@ -403,7 +576,7 @@ function App() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
         >
-          JSON Formatter Pro
+          {formatType === 'json' ? 'JSON' : 'XML'} Formatter Pro
         </motion.h1>
         <motion.div 
           className="header-controls"
@@ -411,6 +584,26 @@ function App() {
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
         >
+          <div className="view-toggle">
+            <motion.button 
+              className={`view-toggle-btn ${formatType === 'json' ? 'active' : ''}`}
+              onClick={() => handleFormatChange('json')}
+              title="JSON Format"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              JSON
+            </motion.button>
+            <motion.button 
+              className={`view-toggle-btn ${formatType === 'xml' ? 'active' : ''}`}
+              onClick={() => handleFormatChange('xml')}
+              title="XML Format"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              XML
+            </motion.button>
+          </div>
           <div className="view-toggle">
             <motion.button 
               className={`view-toggle-btn ${viewMode === 'tree' ? 'active' : ''}`}
@@ -575,7 +768,7 @@ function App() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            Input JSON
+            Input {formatType.toUpperCase()}
             {jsonInput && (
               <span style={{ marginLeft: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 {(jsonInput.length / 1024 / 1024).toFixed(2)} MB
@@ -586,7 +779,7 @@ function App() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".json,application/json"
+              accept={formatType === 'xml' ? '.xml,text/xml,application/xml' : '.json,application/json'}
               onChange={handleFileUpload}
               style={{ display: 'none' }}
             />
