@@ -146,7 +146,8 @@ self.onmessage = function(e) {
       
       self.postMessage({
         type: 'PARSE_SUCCESS',
-        nodes: nodes
+        nodes: nodes,
+        originalInput: data
       });
     } catch (error) {
       self.postMessage({
