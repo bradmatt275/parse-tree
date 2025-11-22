@@ -12,7 +12,7 @@ interface InputSectionProps {
   onInputChange: (value: string) => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  errorLine?: number | null;
+  validationErrors?: Map<number, string>;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -23,8 +23,10 @@ export const InputSection: React.FC<InputSectionProps> = ({
   onInputChange,
   onFileUpload,
   onPaste,
-  errorLine
+  validationErrors
 }) => {
+  const shouldUseVirtualized = jsonInput.length > 100000;
+
   return (
     <motion.div 
       className="input-section"
@@ -53,13 +55,13 @@ export const InputSection: React.FC<InputSectionProps> = ({
           onChange={onFileUpload}
           style={{ display: 'none' }}
         />
-        {jsonInput.length > 100000 ? (
+        {shouldUseVirtualized ? (
           <VirtualizedInput
             value={jsonInput}
             onChange={onInputChange}
             placeholder="Paste your JSON here or use 'Load File' button for large files..."
             className="json-input"
-            errorLine={errorLine}
+            validationErrors={validationErrors}
           />
         ) : (
           <LineNumberTextarea
@@ -69,7 +71,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
             placeholder="Paste your JSON here or use 'Load File' button for large files..."
             spellCheck={false}
             disabled={isProcessing}
-            errorLine={errorLine}
+            validationErrors={validationErrors}
           />
         )}
       </div>

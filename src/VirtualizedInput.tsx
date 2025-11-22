@@ -6,7 +6,7 @@ interface VirtualizedInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
-  errorLine?: number | null;
+  validationErrors?: Map<number, string>;
 }
 
 interface LineData {
@@ -15,14 +15,15 @@ interface LineData {
   onKeyDown: (lineIndex: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   focusedLine: number | null;
   setFocusedLine: (lineIndex: number | null) => void;
-  errorLine: number | null;
+  validationErrors?: Map<number, string>;
 }
 
 const LineRow = React.memo(({ index, style, data }: { index: number; style: React.CSSProperties; data: LineData }) => {
-  const { lines, onChange, onKeyDown, focusedLine, setFocusedLine, errorLine } = data;
+  const { lines, onChange, onKeyDown, focusedLine, setFocusedLine, validationErrors } = data;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const line = lines[index];
-  const isError = errorLine === index + 1;
+  const hasError = validationErrors?.has(index + 1);
+  const errorMessage = hasError ? validationErrors?.get(index + 1) : undefined;
 
   useEffect(() => {
     if (focusedLine === index && textareaRef.current) {
@@ -43,9 +44,9 @@ const LineRow = React.memo(({ index, style, data }: { index: number; style: Reac
   }, [index, setFocusedLine]);
 
   return (
-    <div style={style} className={`virtual-line ${isError ? 'error-line' : ''}`}>
-      <span className="line-number" title={isError ? 'Error on this line' : undefined}>
-        {isError ? '❌' : index + 1}
+    <div style={style} className={`virtual-line ${hasError ? 'error-line' : ''}`}>
+      <span className="line-number" title={errorMessage}>
+        {hasError ? '❌' : index + 1}
       </span>
       <textarea
         ref={textareaRef}
@@ -68,7 +69,7 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
   onChange, 
   placeholder = 'Paste or type JSON here...',
   className = '',
-  errorLine = null
+  validationErrors
 }) => {
   const listRef = useRef<List>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,13 +82,14 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
     setLines(value.split('\n'));
   }, [value]);
 
-  // Scroll to error line if it exists
+  // Scroll to first error line if it exists
   useEffect(() => {
-    if (errorLine && listRef.current) {
+    if (validationErrors && validationErrors.size > 0 && listRef.current) {
+      const firstErrorLine = Math.min(...Array.from(validationErrors.keys()));
       // Scroll to error line (0-based index)
-      listRef.current.scrollToItem(errorLine - 1, 'center');
+      listRef.current.scrollToItem(firstErrorLine - 1, 'center');
     }
-  }, [errorLine]);
+  }, [validationErrors]);
 
   // Measure container height
   useEffect(() => {
@@ -202,7 +204,7 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
     onKeyDown: handleKeyDown,
     focusedLine,
     setFocusedLine,
-    errorLine
+    validationErrors
   };
 
   if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {

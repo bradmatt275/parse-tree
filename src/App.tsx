@@ -8,7 +8,7 @@ import {
   searchNodes,
   TreeNode,
 } from './jsonParser';
-import { getErrorLine } from './utils/validation';
+import { getErrorLine, validateJson } from './utils/validation';
 import { HistoryModal } from './HistoryModal';
 import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
 import { FormatType } from './types';
@@ -94,7 +94,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
-  const [errorLine, setErrorLine] = useState<number | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Map<number, string>>(new Map());
   
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +130,7 @@ function App() {
   const onParseSuccess = useCallback((nodes: TreeNode[], originalInput?: string) => {
     setAllNodes(nodes);
     setError(undefined);
-    setErrorLine(null);
+    setValidationErrors(new Map());
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
     
@@ -143,11 +143,37 @@ function App() {
   
   const onParseError = useCallback((err: string) => {
     setError(err);
-    setErrorLine(getErrorLine(err, jsonInputRef.current));
+    
+    // Try to find multiple errors if it's JSON
+    if (formatType === 'json') {
+      const errors = validateJson(jsonInputRef.current);
+      if (errors.length > 0) {
+        const errorMap = new Map<number, string>();
+        errors.forEach(e => errorMap.set(e.line, e.message));
+        setValidationErrors(errorMap);
+      } else {
+        // Fallback to single error line from message
+        const line = getErrorLine(err, jsonInputRef.current);
+        if (line) {
+          setValidationErrors(new Map([[line, err]]));
+        } else {
+          setValidationErrors(new Map());
+        }
+      }
+    } else {
+      // XML or other
+      const line = getErrorLine(err, jsonInputRef.current);
+      if (line) {
+        setValidationErrors(new Map([[line, err]]));
+      } else {
+        setValidationErrors(new Map());
+      }
+    }
+    
     setAllNodes([]);
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
-  }, [setError, setAllNodes]);
+  }, [setError, setAllNodes, formatType]);
   
   const onParseProgress = useCallback((message: string) => {
     setProcessingMessage(message);
@@ -206,7 +232,12 @@ function App() {
         if (parserError) {
           const errorMsg = parserError.textContent || 'Invalid XML';
           setError(errorMsg);
-          setErrorLine(getErrorLine(errorMsg, input));
+          const line = getErrorLine(errorMsg, input);
+          if (line) {
+            setValidationErrors(new Map([[line, errorMsg]]));
+          } else {
+            setValidationErrors(new Map());
+          }
           setAllNodes([]);
           setIsProcessing(false);
           return;
@@ -339,7 +370,12 @@ function App() {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Invalid XML';
         setError(errorMsg);
-        setErrorLine(getErrorLine(errorMsg, input));
+        const line = getErrorLine(errorMsg, input);
+        if (line) {
+          setValidationErrors(new Map([[line, errorMsg]]));
+        } else {
+          setValidationErrors(new Map());
+        }
         setAllNodes([]);
         setIsProcessing(false);
       }
@@ -565,6 +601,7 @@ function App() {
     setJsonInput('');
     setAllNodes([]);
     setError(undefined);
+    setValidationErrors(new Map());
     setSearchQuery('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -738,7 +775,7 @@ function App() {
           onInputChange={setJsonInput}
           onFileUpload={handleFileUpload}
           onPaste={handlePaste}
-          errorLine={errorLine}
+          validationErrors={validationErrors}
         />
         
         <OutputSection
@@ -758,6 +795,7 @@ function App() {
           treeRef={treeRef}
           codeViewRef={codeViewRef}
           onToggle={handleToggle}
+          validationErrors={validationErrors}
         />
       </div>
       
