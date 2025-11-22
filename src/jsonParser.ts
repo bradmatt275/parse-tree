@@ -11,6 +11,7 @@ export interface TreeNode {
   childCount?: number;
   parent?: string;
   path: string;
+  index?: number;
 }
 
 export interface ParseResult {
@@ -52,7 +53,8 @@ function buildTree(
   depth: number,
   key: string,
   parentId?: string,
-  path: string = ''
+  path: string = '',
+  index?: number
 ): string {
   const nodeId = generateNodeId();
   const currentPath = path ? (key ? `${path}.${key}` : `${path}[${nodes.filter(n => n.parent === parentId).length}]`) : key || 'root';
@@ -68,6 +70,7 @@ function buildTree(
       hasChildren: false,
       parent: parentId,
       path: currentPath,
+      index,
     });
     return nodeId;
   }
@@ -83,6 +86,7 @@ function buildTree(
       hasChildren: false,
       parent: parentId,
       path: currentPath,
+      index,
     });
     return nodeId;
   }
@@ -98,6 +102,7 @@ function buildTree(
       hasChildren: false,
       parent: parentId,
       path: currentPath,
+      index,
     });
     return nodeId;
   }
@@ -113,6 +118,7 @@ function buildTree(
       hasChildren: false,
       parent: parentId,
       path: currentPath,
+      index,
     });
     return nodeId;
   }
@@ -128,10 +134,11 @@ function buildTree(
       childCount: value.length,
       parent: parentId,
       path: currentPath,
+      index,
     });
     
-    value.forEach((item) => {
-      buildTree(item, nodes, depth + 1, '', nodeId, currentPath);
+    value.forEach((item, idx) => {
+      buildTree(item, nodes, depth + 1, String(idx), nodeId, currentPath, idx);
     });
     
     return nodeId;
@@ -149,6 +156,7 @@ function buildTree(
       childCount: keys.length,
       parent: parentId,
       path: currentPath,
+      index,
     });
     
     keys.forEach(k => {

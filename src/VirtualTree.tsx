@@ -1,5 +1,6 @@
 import React, { memo, useRef, useImperativeHandle, forwardRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
+import { Box, LayoutList, Type, Hash, ToggleLeft, Ban, FileText } from 'lucide-react';
 import { TreeNode } from './jsonParser';
 
 interface VirtualTreeProps {
@@ -35,13 +36,15 @@ const TreeNodeRow = memo(({ index, style, data }: RowProps) => {
   
   const renderValue = () => {
     if (node.type === 'object') {
-      const preview = node.isExpanded ? '{' : `{ ${node.childCount || 0} items }`;
-      return <span className="json-punctuation">{preview}</span>;
+      // If it has a key (property), just show {count}
+      // If it's a root or array item (no key or index key), show object {count}
+      const typeLabel = (node.key && node.index === undefined) ? '' : 'object ';
+      return <span className="json-punctuation">{typeLabel}{'{'}{node.childCount || 0}{'}'}</span>;
     }
     
     if (node.type === 'array') {
-      const preview = node.isExpanded ? '[' : `[ ${node.childCount || 0} items ]`;
-      return <span className="json-punctuation">{preview}</span>;
+      const typeLabel = (node.key && node.index === undefined) ? '' : 'array ';
+      return <span className="json-punctuation">{typeLabel}[{node.childCount || 0}]</span>;
     }
     
     if (node.type === 'string') {
@@ -53,23 +56,23 @@ const TreeNodeRow = memo(({ index, style, data }: RowProps) => {
     }
     
     if (node.type === 'boolean') {
-      return <span className="json-boolean">{String(node.value)}</span>;
+      return (
+        <>
+          <input 
+            type="checkbox" 
+            checked={node.value} 
+            readOnly 
+            style={{ marginRight: 6, verticalAlign: 'middle', accentColor: 'var(--boolean-color)' }} 
+          />
+          <span className="json-boolean">{String(node.value)}</span>
+        </>
+      );
     }
     
     if (node.type === 'null') {
       return <span className="json-null">null</span>;
     }
     
-    return null;
-  };
-  
-  const renderClosingBracket = () => {
-    if (node.type === 'object' && node.isExpanded && node.hasChildren) {
-      return <span className="json-punctuation">{'}'}</span>;
-    }
-    if (node.type === 'array' && node.isExpanded && node.hasChildren) {
-      return <span className="json-punctuation">{']'}</span>;
-    }
     return null;
   };
   
@@ -87,30 +90,27 @@ const TreeNodeRow = memo(({ index, style, data }: RowProps) => {
   ) : (
     <span className="expand-icon" style={{ opacity: 0 }}>·</span>
   );
-  
-  // Check if this is a closing bracket row
-  const isClosingBracket = index > 0 && nodes[index - 1] && 
-    (nodes[index - 1].type === 'object' || nodes[index - 1].type === 'array') &&
-    nodes[index - 1].isExpanded && 
-    nodes[index - 1].hasChildren &&
-    node.depth < nodes[index - 1].depth;
-  
-  if (isClosingBracket) {
-    const parentNode = nodes[index - 1];
-    return (
-      <div 
-        className={`tree-node ${isMatch ? 'highlight' : ''}`}
-        style={style}
-      >
-        <span className="line-number">{index + 1}</span>
-        <div className="tree-content">
-          <span className="indent" style={{ width: parentNode.depth * INDENT_SIZE }} />
-          <span className="expand-icon" style={{ opacity: 0 }}>·</span>
-          {renderClosingBracket()}
-        </div>
-      </div>
-    );
-  }
+
+  const getIcon = () => {
+    const iconProps = { size: 14, style: { marginRight: 6, opacity: 0.7, flexShrink: 0 } };
+    
+    switch (node.type) {
+      case 'object':
+        return <Box {...iconProps} color="var(--accent-color)" />;
+      case 'array':
+        return <LayoutList {...iconProps} color="var(--key-color)" />;
+      case 'string':
+        return <Type {...iconProps} color="var(--string-color)" />;
+      case 'number':
+        return <Hash {...iconProps} color="var(--number-color)" />;
+      case 'boolean':
+        return <ToggleLeft {...iconProps} color="var(--boolean-color)" />;
+      case 'null':
+        return <Ban {...iconProps} color="var(--null-color)" />;
+      default:
+        return <FileText {...iconProps} color="var(--text-secondary)" />;
+    }
+  };
   
   return (
     <div 
@@ -121,10 +121,13 @@ const TreeNodeRow = memo(({ index, style, data }: RowProps) => {
       <div className="tree-content">
         <span className="indent" style={{ width: node.depth * INDENT_SIZE }} />
         {expandIcon}
+        {getIcon()}
         {node.key && (
           <>
-            <span className="json-key">&quot;{node.key}&quot;</span>
-            <span className="json-punctuation">: </span>
+            <span className="json-key" style={node.index !== undefined ? { color: 'var(--text-secondary)' } : {}}>
+              {node.key}
+            </span>
+            <span className="json-punctuation" style={{ marginRight: 6 }}> :</span>
           </>
         )}
         {renderValue()}

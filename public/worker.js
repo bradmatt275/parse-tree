@@ -19,7 +19,7 @@ self.onmessage = function(e) {
         return `node_${nodeIdCounter++}`;
       }
       
-      function buildTree(value, nodes, depth, key, parentId, path = '') {
+      function buildTree(value, nodes, depth, key, parentId, path = '', index) {
         // Report progress every 500ms
         const now = Date.now();
         if (now - lastProgressReport > 500) {
@@ -44,6 +44,7 @@ self.onmessage = function(e) {
             hasChildren: false,
             parent: parentId,
             path: currentPath,
+            index,
           });
           return nodeId;
         }
@@ -59,6 +60,7 @@ self.onmessage = function(e) {
             hasChildren: false,
             parent: parentId,
             path: currentPath,
+            index,
           });
           return nodeId;
         }
@@ -74,6 +76,7 @@ self.onmessage = function(e) {
             hasChildren: false,
             parent: parentId,
             path: currentPath,
+            index,
           });
           return nodeId;
         }
@@ -89,6 +92,7 @@ self.onmessage = function(e) {
             hasChildren: false,
             parent: parentId,
             path: currentPath,
+            index,
           });
           return nodeId;
         }
@@ -104,10 +108,11 @@ self.onmessage = function(e) {
             childCount: value.length,
             parent: parentId,
             path: currentPath,
+            index,
           });
           
-          value.forEach((item) => {
-            buildTree(item, nodes, depth + 1, '', nodeId, currentPath);
+          value.forEach((item, idx) => {
+            buildTree(item, nodes, depth + 1, String(idx), nodeId, currentPath, idx);
           });
           
           return nodeId;
@@ -125,6 +130,7 @@ self.onmessage = function(e) {
             childCount: keys.length,
             parent: parentId,
             path: currentPath,
+            index,
           });
           
           keys.forEach(k => {
