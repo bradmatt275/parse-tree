@@ -8,6 +8,7 @@ import {
   searchNodes,
   TreeNode,
 } from './jsonParser';
+import { getErrorLine } from './utils/validation';
 import { HistoryModal } from './HistoryModal';
 import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
 import { FormatType } from './types';
@@ -93,6 +94,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  const [errorLine, setErrorLine] = useState<number | null>(null);
   
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +106,12 @@ function App() {
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
   const mountParseRef = useRef<boolean>(false);
+  const jsonInputRef = useRef<string>(jsonInput);
+
+  // Keep jsonInputRef in sync
+  useEffect(() => {
+    jsonInputRef.current = jsonInput;
+  }, [jsonInput]);
   
   // Initialize with one tab
   useEffect(() => {
@@ -122,6 +130,7 @@ function App() {
   const onParseSuccess = useCallback((nodes: TreeNode[], originalInput?: string) => {
     setAllNodes(nodes);
     setError(undefined);
+    setErrorLine(null);
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
     
@@ -134,6 +143,7 @@ function App() {
   
   const onParseError = useCallback((err: string) => {
     setError(err);
+    setErrorLine(getErrorLine(err, jsonInputRef.current));
     setAllNodes([]);
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
@@ -194,7 +204,9 @@ function App() {
         // Check for parsing errors
         const parserError = xmlDoc.querySelector('parsererror');
         if (parserError) {
-          setError(parserError.textContent || 'Invalid XML');
+          const errorMsg = parserError.textContent || 'Invalid XML';
+          setError(errorMsg);
+          setErrorLine(getErrorLine(errorMsg, input));
           setAllNodes([]);
           setIsProcessing(false);
           return;
@@ -325,7 +337,9 @@ function App() {
           saveToHistory(input, 'xml', sessionId);
         }
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Invalid XML');
+        const errorMsg = error instanceof Error ? error.message : 'Invalid XML';
+        setError(errorMsg);
+        setErrorLine(getErrorLine(errorMsg, input));
         setAllNodes([]);
         setIsProcessing(false);
       }
@@ -724,6 +738,7 @@ function App() {
           onInputChange={setJsonInput}
           onFileUpload={handleFileUpload}
           onPaste={handlePaste}
+          errorLine={errorLine}
         />
         
         <OutputSection

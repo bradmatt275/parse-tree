@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { VirtualizedInput } from './VirtualizedInput';
+import { LineNumberTextarea } from './LineNumberTextarea';
 import { FormatType } from './types';
 
 interface InputSectionProps {
@@ -11,6 +12,7 @@ interface InputSectionProps {
   onInputChange: (value: string) => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  errorLine?: number | null;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -21,6 +23,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
   onInputChange,
   onFileUpload,
   onPaste,
+  errorLine
 }) => {
   return (
     <motion.div 
@@ -56,16 +59,17 @@ export const InputSection: React.FC<InputSectionProps> = ({
             onChange={onInputChange}
             placeholder="Paste your JSON here or use 'Load File' button for large files..."
             className="json-input"
+            errorLine={errorLine}
           />
         ) : (
-          <textarea
-            className="json-input"
+          <LineNumberTextarea
             value={jsonInput}
             onChange={(e) => onInputChange(e.target.value)}
             onPaste={onPaste}
             placeholder="Paste your JSON here or use 'Load File' button for large files..."
             spellCheck={false}
             disabled={isProcessing}
+            errorLine={errorLine}
           />
         )}
       </div>

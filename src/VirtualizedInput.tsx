@@ -6,6 +6,7 @@ interface VirtualizedInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  errorLine?: number | null;
 }
 
 interface LineData {
@@ -14,12 +15,14 @@ interface LineData {
   onKeyDown: (lineIndex: number, e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   focusedLine: number | null;
   setFocusedLine: (lineIndex: number | null) => void;
+  errorLine: number | null;
 }
 
 const LineRow = React.memo(({ index, style, data }: { index: number; style: React.CSSProperties; data: LineData }) => {
-  const { lines, onChange, onKeyDown, focusedLine, setFocusedLine } = data;
+  const { lines, onChange, onKeyDown, focusedLine, setFocusedLine, errorLine } = data;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const line = lines[index];
+  const isError = errorLine === index + 1;
 
   useEffect(() => {
     if (focusedLine === index && textareaRef.current) {
@@ -40,8 +43,10 @@ const LineRow = React.memo(({ index, style, data }: { index: number; style: Reac
   }, [index, setFocusedLine]);
 
   return (
-    <div style={style} className="virtual-line">
-      <span className="line-number">{index + 1}</span>
+    <div style={style} className={`virtual-line ${isError ? 'error-line' : ''}`}>
+      <span className="line-number" title={isError ? 'Error on this line' : undefined}>
+        {isError ? '❌' : index + 1}
+      </span>
       <textarea
         ref={textareaRef}
         value={line}
@@ -62,7 +67,8 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
   value, 
   onChange, 
   placeholder = 'Paste or type JSON here...',
-  className = ''
+  className = '',
+  errorLine = null
 }) => {
   const listRef = useRef<List>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +80,14 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
   useEffect(() => {
     setLines(value.split('\n'));
   }, [value]);
+
+  // Scroll to error line if it exists
+  useEffect(() => {
+    if (errorLine && listRef.current) {
+      // Scroll to error line (0-based index)
+      listRef.current.scrollToItem(errorLine - 1, 'center');
+    }
+  }, [errorLine]);
 
   // Measure container height
   useEffect(() => {
@@ -187,10 +201,25 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
     onChange: handleLineChange,
     onKeyDown: handleKeyDown,
     focusedLine,
-    setFocusedLine
+    setFocusedLine,
+    errorLine
   };
 
   if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+    // For empty/single line, we still want to show line numbers if possible,
+    // but the original code returned a simple textarea.
+    // Let's keep it simple for now, but maybe we should use the virtual list even for small content?
+    // The original code had a check: if (lines.length === 0 || (lines.length === 1 && lines[0] === ''))
+    // This returns a plain textarea.
+    // If we want line numbers everywhere, we should probably remove this check or wrap this textarea too.
+    // But wait, VirtualizedInput is only used when jsonInput.length > 100000.
+    // So for small files, InputSection uses a plain textarea.
+    // So this check inside VirtualizedInput is for when the content becomes empty while editing a large file?
+    // Or maybe it's just a fallback.
+    
+    // Let's leave this fallback as is for now, as it's rarely hit if VirtualizedInput is only used for large files.
+    // But if I change InputSection to use VirtualizedInput for everything, then this matters.
+    
     return (
       <textarea
         value={value}
