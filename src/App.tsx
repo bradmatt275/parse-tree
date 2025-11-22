@@ -151,6 +151,7 @@ function App() {
   const pendingScrollRef = useRef<string | null>(null);
   const initializedRef = useRef<boolean>(false);
   const mountParseRef = useRef<boolean>(false);
+  const pendingSessionIdRef = useRef<string | undefined>(undefined); // Track sessionId for next save
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
@@ -362,7 +363,10 @@ function App() {
         
         // Save to history on successful parse (skip if it's the default sample)
         if (input.trim() && input !== SAMPLE_XML) {
-          saveToHistory(input, 'xml', activeTab?.sessionId);
+          // Use pending sessionId if available (from file load), otherwise use current tab's sessionId
+          const sessionId = pendingSessionIdRef.current || activeTab?.sessionId;
+          pendingSessionIdRef.current = undefined; // Clear after use
+          saveToHistory(input, 'xml', sessionId);
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Invalid XML');
@@ -424,7 +428,10 @@ function App() {
         // Save to history on successful parse (skip if it's the default sample)
         // Use originalInput from the worker instead of jsonInput state to avoid closure issues
         if (originalInput && originalInput.trim() && originalInput !== SAMPLE_JSON) {
-          saveToHistory(originalInput, 'json', activeTab?.sessionId);
+          // Use pending sessionId if available (from file load), otherwise use current tab's sessionId
+          const sessionId = pendingSessionIdRef.current || activeTab?.sessionId;
+          pendingSessionIdRef.current = undefined; // Clear after use
+          saveToHistory(originalInput, 'json', sessionId);
         }
       } else if (type === 'PARSE_ERROR') {
         setError(error);
@@ -580,6 +587,9 @@ function App() {
       // Generate new session ID for file load
       const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       
+      // Store in ref so the parse callback can use it
+      pendingSessionIdRef.current = newSessionId;
+      
       // Update tab with new sessionId
       if (activeTabId) {
         setTabs(prev => prev.map(tab => 
@@ -684,6 +694,9 @@ function App() {
   const handleLoadFromHistory = useCallback((content: string, format: FormatType) => {
     // Generate new session ID when loading from history
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    
+    // Store in ref so the parse callback can use it
+    pendingSessionIdRef.current = newSessionId;
     
     // Update tab with new sessionId
     if (activeTabId) {
