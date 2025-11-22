@@ -595,7 +595,26 @@ function App() {
     if (error || allNodes.length === 0) return '';
     try {
       if (formatType === 'xml') {
-        return jsonInput; // For XML, use the original input
+        // Format XML properly
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(jsonInput, 'text/xml');
+        const serializer = new XMLSerializer();
+        const xmlString = serializer.serializeToString(xmlDoc);
+        
+        // Pretty print XML
+        let formatted = '';
+        let indent = 0;
+        const tab = '  ';
+        
+        xmlString.split(/>\s*</).forEach((node, index) => {
+          if (index > 0) formatted += '\n';
+          
+          if (node.match(/^\/\w/)) indent--; // Closing tag
+          formatted += tab.repeat(indent) + '<' + node + '>';
+          if (node.match(/^<?\w[^>]*[^\/]$/)) indent++; // Opening tag
+        });
+        
+        return formatted.substring(1, formatted.length - 1); // Remove extra < >
       }
       return JSON.stringify(JSON.parse(jsonInput), null, 2);
     } catch {
