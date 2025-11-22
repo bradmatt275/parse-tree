@@ -200,11 +200,15 @@ Traditional JSON formatters render the entire JSON tree in the DOM, which causes
 
 ## ⚠️ Error Handling
 
-### Validation
-- Detects malformed JSON
-- Clear error messages
-- Helpful suggestions
-- Non-intrusive display
+### Advanced Validation
+- **Multi-Error Detection**: Identifies up to 10 errors simultaneously
+- **Visual Feedback**: 
+  - Red 'X' markers in the gutter for every error line
+  - Line highlighting to quickly spot issues
+  - Detailed error list in the output pane
+- **Format Support**:
+  - **JSON**: Full multi-error validation using `jsonc-parser`
+  - **XML**: Smart validation using `saxes` (optimized to one error per line to reduce noise)
 
 ### Common Errors Caught
 ```javascript
@@ -228,9 +232,11 @@ Traditional JSON formatters render the entire JSON tree in the DOM, which causes
 ### Error Display
 ```
 ┌──────────────────────────────────┐
-│ ⚠️ Error parsing JSON:           │
+│ ⚠️ Validation Errors (3):        │
 │                                  │
-│ Unexpected token at position 15 │
+│ ❌ Line 2: Expected property...  │
+│ ❌ Line 5: Trailing comma...     │
+│ ❌ Line 8: Unexpected token...   │
 └──────────────────────────────────┘
 ```
 

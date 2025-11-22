@@ -36,7 +36,11 @@ A high-performance JSON and XML formatter web application that can handle extrem
 - **File Upload**: Load JSON or XML files directly from your filesystem
 - **Copy to Clipboard**: One-click copy of formatted output
 - **Expand/Collapse All**: Bulk expand or collapse all tree nodes
-- **Error Handling**: Graceful error messages for malformed data with progress indicators
+- **Error Handling**: 
+  - **Multi-Error Validation**: Detects and displays up to 10 validation errors simultaneously
+  - **Visual Indicators**: Red 'X' markers and line highlighting for all error locations
+  - **Detailed Reporting**: Comprehensive error list with line numbers and descriptions
+  - **Format Specifics**: Full validation for both JSON and XML (XML limited to one error per line to prevent noise)
 - **Dark/Light Themes**: Toggle between dark and light themes
 - **Responsive Design**: Works on desktop and mobile devices
 

@@ -14,18 +14,27 @@ Open http://localhost:3000 in your browser!
 
 ## 📖 Quick Tutorial
 
-### 1. Format JSON
-The app loads with sample JSON already formatted. Try modifying it!
+### 1. Format JSON or XML
+The app loads with sample JSON already formatted. You can switch to XML mode using the toggle button.
 
-### 2. Paste Your Own JSON
+### 2. Paste Your Own Data
+Paste JSON:
 ```json
 {
   "hello": "world",
-  "numbers": [1, 2, 3],
-  "nested": {
-    "data": true
-  }
+  "numbers": [1, 2, 3]
 }
+```
+
+Or paste XML:
+```xml
+<root>
+  <hello>world</hello>
+  <numbers>
+    <item>1</item>
+    <item>2</item>
+  </numbers>
+</root>
 ```
 
 ### 3. Navigate the Tree
@@ -62,6 +71,7 @@ Copy the output and paste into the formatter. Notice how smooth it is!
 
 | Feature | Description | Shortcut |
 |---------|-------------|----------|
+| **Format Support** | JSON and XML support | Toggle button |
 | **Virtual Scrolling** | Handles massive files smoothly | Always on |
 | **Line Numbers** | See line numbers for each node | Always visible |
 | **Syntax Highlighting** | Color-coded JSON types | Automatic |
@@ -116,11 +126,11 @@ npm install
 npm run dev
 ```
 
-### JSON won't format?
-- Check for syntax errors (app will show error message)
-- Try wrapping in `{}` or `[]`
-- Remove trailing commas
-- Check for unquoted strings
+### Data won't format?
+- Check for syntax errors (app will show detailed error list)
+- Verify you have the correct format selected (JSON vs XML)
+- JSON: Check for trailing commas or unquoted strings
+- XML: Check for unclosed tags or invalid attributes
 
 ### Search not working?
 - Make sure you've clicked "Format" first

@@ -44,9 +44,14 @@ A high-performance JSON formatter web application has been successfully built wi
 - [x] Copy formatted JSON to clipboard
 - [x] Dark/light theme toggle
 - [x] Responsive design (desktop and mobile)
+- [x] XML support with attribute handling
 
 ### Error Handling ✅
-- [x] Graceful error messages for malformed JSON
+- [x] Multi-error detection (up to 10 errors)
+- [x] Visual error indicators (red 'X' and highlights)
+- [x] Detailed error reporting list
+- [x] XML validation (one error per line)
+- [x] Graceful error messages for malformed data
 - [x] Clear error display
 - [x] Non-breaking error states
 
@@ -149,10 +154,11 @@ A high-performance JSON formatter web application has been successfully built wi
 - Complete color scheme
 
 ### 8. Error Handling
-- Validates JSON syntax
-- Clear error messages
-- Helpful feedback
-- Non-intrusive display
+- **Multi-Error Validation**: Detects up to 10 errors simultaneously
+- **Visual Indicators**: Red 'X' markers and line highlighting
+- **Format Support**: Full validation for both JSON and XML
+- **Clear Feedback**: Detailed error list with line numbers
+- **Non-intrusive**: Doesn't block UI or crash app
 
 ### 9. Responsive Design
 - Desktop: Side-by-side panels
@@ -319,8 +325,8 @@ The application is:
 ## 📦 Package Information
 
 - **Name**: json-formatter-pro
-- **Version**: 1.0.0
-- **Dependencies**: React, react-window, TypeScript
+- **Version**: 1.1.0
+- **Dependencies**: React, react-window, TypeScript, saxes, jsonc-parser
 - **Dev Server**: Vite
 - **Build Size**: ~150KB (gzipped)
 

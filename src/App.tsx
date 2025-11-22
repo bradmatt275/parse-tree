@@ -373,6 +373,7 @@ function App() {
         
         buildXmlTree(root, nodes, 0, '', undefined);
         setAllNodes(nodes);
+        setValidationErrors(new Map());
         setIsProcessing(false);
         
         // Save to history on successful parse (skip if it's the default sample)
@@ -527,6 +528,7 @@ function App() {
     setJsonInput(newContent);
     setAllNodes([]);
     setError(undefined);
+    setValidationErrors(new Map());
     
     // Update tab title
     const tabIndex = tabs.findIndex(t => t.id === activeTabId);

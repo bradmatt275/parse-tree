@@ -1,5 +1,5 @@
 
-import { parse, ParseErrorCode, ParseError } from 'jsonc-parser';
+import { parse, ParseError } from 'jsonc-parser';
 import { SaxesParser } from 'saxes';
 
 export interface ValidationResult {
@@ -10,10 +10,15 @@ export interface ValidationResult {
 export function validateXml(input: string): ValidationResult[] {
   const errors: ValidationResult[] = [];
   const parser = new SaxesParser();
+  const errorLines = new Set<number>();
 
   parser.on("error", (e) => {
-    // Limit to 10 errors
-    if (errors.length < 10) {
+    // Limit to 10 errors total
+    if (errors.length >= 10) return;
+
+    // Only report the first error for each line to avoid spam
+    if (!errorLines.has(parser.line)) {
+      errorLines.add(parser.line);
       errors.push({
         line: parser.line,
         message: e.message
@@ -27,7 +32,7 @@ export function validateXml(input: string): ValidationResult[] {
     // Ignore errors thrown here as they are captured by the error event
   }
 
-  return errors;
+  return errors.sort((a, b) => a.line - b.line);
 }
 
 export function validateJson(input: string): ValidationResult[] {
@@ -72,24 +77,24 @@ export function validateJson(input: string): ValidationResult[] {
   return results;
 }
 
-function getErrorMessage(errorCode: ParseErrorCode): string {
+function getErrorMessage(errorCode: number): string {
   switch (errorCode) {
-    case ParseErrorCode.InvalidSymbol: return 'Invalid symbol';
-    case ParseErrorCode.InvalidNumberFormat: return 'Invalid number format';
-    case ParseErrorCode.PropertyNameExpected: return 'Property name expected';
-    case ParseErrorCode.ValueExpected: return 'Value expected';
-    case ParseErrorCode.ColonExpected: return 'Colon expected';
-    case ParseErrorCode.CommaExpected: return 'Comma expected';
-    case ParseErrorCode.CloseBraceExpected: return 'Closing brace expected';
-    case ParseErrorCode.CloseBracketExpected: return 'Closing bracket expected';
-    case ParseErrorCode.EndOfFileExpected: return 'End of file expected';
-    case ParseErrorCode.InvalidCommentToken: return 'Invalid comment token';
-    case ParseErrorCode.UnexpectedEndOfComment: return 'Unexpected end of comment';
-    case ParseErrorCode.UnexpectedEndOfString: return 'Unexpected end of string';
-    case ParseErrorCode.UnexpectedEndOfNumber: return 'Unexpected end of number';
-    case ParseErrorCode.InvalidUnicode: return 'Invalid unicode sequence';
-    case ParseErrorCode.InvalidEscapeCharacter: return 'Invalid escape character';
-    case ParseErrorCode.InvalidCharacter: return 'Invalid character';
+    case 1: return 'Invalid symbol';
+    case 2: return 'Invalid number format';
+    case 3: return 'Property name expected';
+    case 4: return 'Value expected';
+    case 5: return 'Colon expected';
+    case 6: return 'Comma expected';
+    case 7: return 'Closing brace expected';
+    case 8: return 'Closing bracket expected';
+    case 9: return 'End of file expected';
+    case 10: return 'Invalid comment token';
+    case 11: return 'Unexpected end of comment';
+    case 12: return 'Unexpected end of string';
+    case 13: return 'Unexpected end of number';
+    case 14: return 'Invalid unicode sequence';
+    case 15: return 'Invalid escape character';
+    case 16: return 'Invalid character';
     default: return 'Syntax error';
   }
 }

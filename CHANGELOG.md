@@ -2,6 +2,23 @@
 
 All notable changes to JSON Formatter Pro will be documented in this file.
 
+## [1.1.0] - 2024-11-22
+
+### ✨ New Features
+- **Advanced Error Validation**: 
+  - Added support for detecting multiple errors simultaneously (up to 10)
+  - Implemented visual error indicators (red 'X') in the line number gutter
+  - Added line highlighting for all detected errors
+  - New error list view in the output pane showing all issues at once
+- **XML Validation**: 
+  - Integrated `saxes` parser for robust XML validation
+  - Implemented smart "one error per line" logic to prevent error cascades
+  - Full parity with JSON validation features
+
+### 🐛 Bug Fixes
+- Fixed issue where validation errors wouldn't clear after fixing XML input
+- Improved error message clarity for both formats
+
 ## [1.0.0] - 2024-11-22
 
 ### 🎉 Initial Release
