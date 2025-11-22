@@ -3,7 +3,7 @@
 import { HistoryEntry, FormatType } from './types';
 
 const DB_NAME = 'json-formatter-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to add sessionId index
 const STORE_NAME = 'history';
 const MAX_HISTORY_ENTRIES = 50;
 
@@ -40,14 +40,25 @@ function initDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      const transaction = (event.target as IDBOpenDBRequest).transaction!;
       
-      // Create object store if it doesn't exist
+      let store: IDBObjectStore;
+      
+      // Create object store if it doesn't exist (version 1)
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         // Create index for sorting by timestamp
         store.createIndex('timestamp', 'timestamp', { unique: false });
         // Create index for session lookup
         store.createIndex('sessionId', 'sessionId', { unique: false });
+      } else {
+        // Get existing store for upgrades
+        store = transaction.objectStore(STORE_NAME);
+        
+        // Add sessionId index if upgrading from version 1 to 2
+        if (!store.indexNames.contains('sessionId')) {
+          store.createIndex('sessionId', 'sessionId', { unique: false });
+        }
       }
     };
   });
@@ -62,12 +73,19 @@ export async function saveToHistory(content: string, formatType: FormatType, ses
     const preview = content.trim().substring(0, 100);
     const now = new Date();
     
-    // If sessionId is provided, check if this session already has an entry using index
+    // If sessionId is provided, check if this session already has an entry using cursor
     if (sessionId) {
       const sessionIndex = store.index('sessionId');
       const existingEntry = await new Promise<HistoryEntry | undefined>((resolve) => {
-        const request = sessionIndex.get(sessionId);
-        request.onsuccess = () => resolve(request.result);
+        const request = sessionIndex.openCursor(IDBKeyRange.only(sessionId));
+        request.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          if (cursor) {
+            resolve(cursor.value);
+          } else {
+            resolve(undefined);
+          }
+        };
         request.onerror = () => resolve(undefined);
       });
       

@@ -151,7 +151,7 @@ function App() {
   const pendingScrollRef = useRef<string | null>(null);
   const initializedRef = useRef<boolean>(false);
   const mountParseRef = useRef<boolean>(false);
-  const pendingSessionIdRef = useRef<string | undefined>(undefined); // Track sessionId for next save
+  const currentSessionIdRef = useRef<string | undefined>(undefined);
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
@@ -206,6 +206,7 @@ function App() {
       setAllNodesState(activeTab.nodes);
       setErrorState(activeTab.error);
       setFormatTypeState(activeTab.formatType);
+      currentSessionIdRef.current = activeTab.sessionId;
     }
   }, [activeTab?.id]); // Only trigger when tab ID changes (switching tabs)
   
@@ -363,9 +364,8 @@ function App() {
         
         // Save to history on successful parse (skip if it's the default sample)
         if (input.trim() && input !== SAMPLE_XML) {
-          // Use pending sessionId if available (from file load), otherwise use current tab's sessionId
-          const sessionId = pendingSessionIdRef.current || activeTab?.sessionId;
-          pendingSessionIdRef.current = undefined; // Clear after use
+          // Use current tab's sessionId to ensure all edits update the same history entry
+          const sessionId = currentSessionIdRef.current;
           saveToHistory(input, 'xml', sessionId);
         }
       } catch (error) {
@@ -428,9 +428,8 @@ function App() {
         // Save to history on successful parse (skip if it's the default sample)
         // Use originalInput from the worker instead of jsonInput state to avoid closure issues
         if (originalInput && originalInput.trim() && originalInput !== SAMPLE_JSON) {
-          // Use pending sessionId if available (from file load), otherwise use current tab's sessionId
-          const sessionId = pendingSessionIdRef.current || activeTab?.sessionId;
-          pendingSessionIdRef.current = undefined; // Clear after use
+          // Use current tab's sessionId to ensure all edits update the same history entry
+          const sessionId = currentSessionIdRef.current;
           saveToHistory(originalInput, 'json', sessionId);
         }
       } else if (type === 'PARSE_ERROR') {
@@ -584,18 +583,8 @@ function App() {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       
-      // Generate new session ID for file load
-      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      
-      // Store in ref so the parse callback can use it
-      pendingSessionIdRef.current = newSessionId;
-      
-      // Update tab with new sessionId
-      if (activeTabId) {
-        setTabs(prev => prev.map(tab => 
-          tab.id === activeTabId ? { ...tab, sessionId: newSessionId } : tab
-        ));
-      }
+      // Use existing tab sessionId - don't generate new one
+      // This ensures all edits in this tab update the same history entry
       
       setJsonInput(text);
       parseInput(text);
@@ -692,25 +681,15 @@ function App() {
   }, [formatType, parseInput]);
   
   const handleLoadFromHistory = useCallback((content: string, format: FormatType) => {
-    // Generate new session ID when loading from history
-    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    
-    // Store in ref so the parse callback can use it
-    pendingSessionIdRef.current = newSessionId;
-    
-    // Update tab with new sessionId
-    if (activeTabId) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId ? { ...tab, sessionId: newSessionId } : tab
-      ));
-    }
+    // Use existing tab sessionId - don't generate new one
+    // This ensures all edits in this tab update the same history entry
     
     setJsonInput(content);
     setFormatType(format);
     setAllNodes([]);
     setError(undefined);
     parseInput(content);
-  }, [parseInput, activeTabId]);
+  }, [parseInput]);
   
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   
