@@ -57,7 +57,7 @@ export function HistoryModal({ isOpen, onClose, onLoad }: HistoryModalProps) {
         >
           <div className="modal-header">
             <h2>
-              <History size={20} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
+              <History size={20} className="history-icon" />
               History
             </h2>
             <div className="modal-actions">

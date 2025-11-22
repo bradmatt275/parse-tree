@@ -12,7 +12,7 @@ export function saveToHistory(content: string, formatType: FormatType): string {
     const now = new Date();
     
     const entry: HistoryEntry = {
-      id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `history_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       formatType,
       content,
       preview,

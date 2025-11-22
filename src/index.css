@@ -1065,6 +1065,11 @@ body {
   gap: 0.5rem;
 }
 
+.history-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .modal-actions {
   display: flex;
   align-items: center;

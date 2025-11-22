@@ -117,7 +117,7 @@ function App() {
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
     const newTab: TabData = {
-      id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       title: `Untitled-${tabs.length + 1}.${formatType}`,
       formatType,
       content: formatType === 'json' ? SAMPLE_JSON : SAMPLE_XML,
@@ -141,7 +141,7 @@ function App() {
       } else if (filtered.length === 0) {
         // If no tabs left, create a new one
         const newTab: TabData = {
-          id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           title: 'Untitled-1.json',
           formatType: 'json',
           content: SAMPLE_JSON,
