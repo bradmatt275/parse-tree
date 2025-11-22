@@ -8,7 +8,7 @@ import {
   searchNodes,
   TreeNode,
 } from './jsonParser';
-import { getErrorLine, validateJson } from './utils/validation';
+import { getErrorLine, validateJson, validateXml } from './utils/validation';
 import { HistoryModal } from './HistoryModal';
 import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
 import { FormatType } from './types';
@@ -232,12 +232,25 @@ function App() {
         if (parserError) {
           const errorMsg = parserError.textContent || 'Invalid XML';
           setError(errorMsg);
-          const line = getErrorLine(errorMsg, input);
-          if (line) {
-            setValidationErrors(new Map([[line, errorMsg]]));
+          
+          // Use saxes to find all errors
+          const errors = validateXml(input);
+          if (errors.length > 0) {
+            const errorMap = new Map<number, string>();
+            errors.forEach(e => {
+              const existing = errorMap.get(e.line);
+              errorMap.set(e.line, existing ? `${existing}; ${e.message}` : e.message);
+            });
+            setValidationErrors(errorMap);
           } else {
-            setValidationErrors(new Map());
+            const line = getErrorLine(errorMsg, input);
+            if (line) {
+              setValidationErrors(new Map([[line, errorMsg]]));
+            } else {
+              setValidationErrors(new Map());
+            }
           }
+          
           setAllNodes([]);
           setIsProcessing(false);
           return;
@@ -370,12 +383,25 @@ function App() {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Invalid XML';
         setError(errorMsg);
-        const line = getErrorLine(errorMsg, input);
-        if (line) {
-          setValidationErrors(new Map([[line, errorMsg]]));
+        
+        // Use saxes to find all errors
+        const errors = validateXml(input);
+        if (errors.length > 0) {
+          const errorMap = new Map<number, string>();
+          errors.forEach(e => {
+            const existing = errorMap.get(e.line);
+            errorMap.set(e.line, existing ? `${existing}; ${e.message}` : e.message);
+          });
+          setValidationErrors(errorMap);
         } else {
-          setValidationErrors(new Map());
+          const line = getErrorLine(errorMsg, input);
+          if (line) {
+            setValidationErrors(new Map([[line, errorMsg]]));
+          } else {
+            setValidationErrors(new Map());
+          }
         }
+        
         setAllNodes([]);
         setIsProcessing(false);
       }

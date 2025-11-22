@@ -98,7 +98,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
               exit={{ opacity: 0, y: 20 }}
               transition={{ type: "spring", stiffness: 200 }}
             >
-              <strong>{validationErrors && validationErrors.size > 1 ? `Found ${validationErrors.size} Errors:` : 'Error parsing JSON:'}</strong>
+              <strong>{validationErrors && validationErrors.size > 1 ? `Found ${validationErrors.size} Errors:` : 'Error parsing input:'}</strong>
               <br />
               {validationErrors && validationErrors.size > 0 ? (
                 <ul style={{ listStyleType: 'none', padding: 0, marginTop: '0.5rem', textAlign: 'left' }}>

@@ -1,9 +1,33 @@
 
 import { parse, ParseErrorCode, ParseError } from 'jsonc-parser';
+import { SaxesParser } from 'saxes';
 
 export interface ValidationResult {
   line: number;
   message: string;
+}
+
+export function validateXml(input: string): ValidationResult[] {
+  const errors: ValidationResult[] = [];
+  const parser = new SaxesParser();
+
+  parser.on("error", (e) => {
+    // Limit to 10 errors
+    if (errors.length < 10) {
+      errors.push({
+        line: parser.line,
+        message: e.message
+      });
+    }
+  });
+
+  try {
+    parser.write(input).close();
+  } catch (e) {
+    // Ignore errors thrown here as they are captured by the error event
+  }
+
+  return errors;
 }
 
 export function validateJson(input: string): ValidationResult[] {
