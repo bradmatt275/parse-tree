@@ -150,6 +150,7 @@ function App() {
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
   const initializedRef = useRef<boolean>(false);
+  const mountParseRef = useRef<boolean>(false);
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
@@ -201,7 +202,7 @@ function App() {
       setErrorState(activeTab.error);
       setFormatTypeState(activeTab.formatType);
     }
-  }, [activeTab?.id]); // Only trigger when tab ID changes (switching tabs)
+  }, [activeTab]); // Depend on entire activeTab object
   
   // Initialize with one tab
   useEffect(() => {
@@ -371,6 +372,11 @@ function App() {
   
   // Auto-format with debounce when tab content or format changes
   useEffect(() => {
+    // Skip if this is the mount parse (handled separately)
+    if (mountParseRef.current) {
+      return;
+    }
+    
     // Clear existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -445,7 +451,12 @@ function App() {
   // Parse on mount (like original code)
   useEffect(() => {
     if (jsonInput) {
+      mountParseRef.current = true;
       parseInput(jsonInput);
+      // Reset flag after a short delay so subsequent changes trigger auto-format
+      setTimeout(() => {
+        mountParseRef.current = false;
+      }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
