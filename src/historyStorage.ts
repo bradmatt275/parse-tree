@@ -5,11 +5,29 @@ import { HistoryEntry, FormatType } from './types';
 const HISTORY_KEY = 'json-formatter-history';
 const MAX_HISTORY_ENTRIES = 50; // Limit history to prevent localStorage overflow
 
-export function saveToHistory(content: string, formatType: FormatType): string {
+export function saveToHistory(content: string, formatType: FormatType, sessionId?: string): string {
   try {
     const history = getHistory();
     const preview = content.trim().substring(0, 100);
     const now = new Date();
+    
+    // If sessionId is provided, check if this session already has an entry
+    // If so, update it instead of creating a new one
+    if (sessionId) {
+      const existingIndex = history.findIndex(entry => entry.sessionId === sessionId);
+      if (existingIndex !== -1) {
+        // Update existing entry
+        history[existingIndex] = {
+          ...history[existingIndex],
+          content,
+          preview,
+          timestamp: now.getTime(),
+          dateString: now.toLocaleString(),
+        };
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        return history[existingIndex].id;
+      }
+    }
     
     const entry: HistoryEntry = {
       id: `history_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
@@ -18,6 +36,7 @@ export function saveToHistory(content: string, formatType: FormatType): string {
       preview,
       timestamp: now.getTime(),
       dateString: now.toLocaleString(),
+      sessionId,
     };
     
     // Add to beginning of array

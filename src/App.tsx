@@ -154,6 +154,7 @@ function App() {
   
   // Tab management functions
   const createNewTab = useCallback((formatType: FormatType = 'json') => {
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     const newTab: TabData = {
       id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       title: `Untitled-${tabs.length + 1}.${formatType}`,
@@ -161,6 +162,7 @@ function App() {
       content: formatType === 'json' ? SAMPLE_JSON : SAMPLE_XML,
       nodes: [],
       error: undefined,
+      sessionId,
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -178,6 +180,7 @@ function App() {
         setActiveTabId(filtered[newActiveIndex].id);
       } else if (filtered.length === 0) {
         // If no tabs left, create a new one
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const newTab: TabData = {
           id: `tab_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           title: 'Untitled-1.json',
@@ -185,6 +188,7 @@ function App() {
           content: SAMPLE_JSON,
           nodes: [],
           error: undefined,
+          sessionId,
         };
         setActiveTabId(newTab.id);
         return [newTab];
@@ -352,9 +356,9 @@ function App() {
         setAllNodes(nodes);
         setIsProcessing(false);
         
-        // Save to history on successful parse
-        if (input.trim()) {
-          saveToHistory(input, 'xml');
+        // Save to history on successful parse (skip if it's the default sample)
+        if (input.trim() && input !== SAMPLE_XML) {
+          saveToHistory(input, 'xml', activeTab?.sessionId);
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Invalid XML');
@@ -413,9 +417,9 @@ function App() {
         setIsProcessing(false);
         setProcessingMessage('Processing JSON...');
         
-        // Save to history on successful parse
-        if (jsonInput.trim()) {
-          saveToHistory(jsonInput, 'json');
+        // Save to history on successful parse (skip if it's the default sample)
+        if (jsonInput.trim() && jsonInput !== SAMPLE_JSON) {
+          saveToHistory(jsonInput, 'json', activeTab?.sessionId);
         }
       } else if (type === 'PARSE_ERROR') {
         setError(error);
@@ -567,6 +571,17 @@ function App() {
     
     reader.onload = (e) => {
       const text = e.target?.result as string;
+      
+      // Generate new session ID for file load
+      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      
+      // Update tab with new sessionId
+      if (activeTabId) {
+        setTabs(prev => prev.map(tab => 
+          tab.id === activeTabId ? { ...tab, sessionId: newSessionId } : tab
+        ));
+      }
+      
       setJsonInput(text);
       parseInput(text);
     };
@@ -577,7 +592,7 @@ function App() {
     };
     
     reader.readAsText(file);
-  }, [formatType, parseInput]);
+  }, [formatType, parseInput, activeTabId]);
   
   const handleToggle = useCallback((nodeId: string) => {
     setAllNodes(toggleNode(allNodes, nodeId));
@@ -662,12 +677,22 @@ function App() {
   }, [formatType, parseInput]);
   
   const handleLoadFromHistory = useCallback((content: string, format: FormatType) => {
+    // Generate new session ID when loading from history
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    
+    // Update tab with new sessionId
+    if (activeTabId) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, sessionId: newSessionId } : tab
+      ));
+    }
+    
     setJsonInput(content);
     setFormatType(format);
     setAllNodes([]);
     setError(undefined);
     parseInput(content);
-  }, [parseInput]);
+  }, [parseInput, activeTabId]);
   
   const visibleNodes = useMemo(() => getVisibleNodes(allNodes), [allNodes]);
   

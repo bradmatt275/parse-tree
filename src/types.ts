@@ -11,6 +11,7 @@ export interface TabData {
   content: string;
   nodes: TreeNode[];
   error?: string;
+  sessionId?: string; // Track editing session to prevent duplicate history entries
 }
 
 export interface HistoryEntry {
@@ -20,4 +21,5 @@ export interface HistoryEntry {
   preview: string; // First 100 chars for preview
   timestamp: number;
   dateString: string;
+  sessionId?: string; // Link to editing session
 }
