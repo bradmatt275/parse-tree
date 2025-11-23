@@ -26,3 +26,6 @@ dist-ssr
 # Test coverage
 coverage/
 .nyc_output/
+
+# Generated test data
+examples/test-*.json

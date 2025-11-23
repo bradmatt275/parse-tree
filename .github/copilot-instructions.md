@@ -16,46 +16,46 @@ JSON/XML Formatter Pro is a high-performance web application for formatting and 
    - Uses custom hooks (`useTabManager`, `useWebWorker`) to separate concerns
    - Search navigation uses `matchIds` array with current index tracking
 
-2. **`Header.tsx`** - Top navigation bar
+2. **`components/Header.tsx`** - Top navigation bar
    - Multi-tab interface with tab switching, creation, and closing
    - Theme toggle (dark/light)
    - History modal trigger
 
-3. **`Toolbar.tsx`** - Action toolbar
+3. **`components/Toolbar.tsx`** - Action toolbar
    - Format type selector (JSON/XML)
    - View mode toggle (Tree/Code)
    - Search box with navigation (previous/next match)
    - Action buttons: Load file, Format, Expand/Collapse all, Copy, Clear
 
-4. **`InputSection.tsx`** - Input panel
+4. **`components/InputSection.tsx`** - Input panel
    - Displays formatted input with file size
    - Handles file upload via hidden input
    - Switches between standard textarea and VirtualizedInput for large files (>100KB)
    - Manages paste events for large content
 
-5. **`OutputSection.tsx`** - Output display panel
+5. **`components/OutputSection.tsx`** - Output display panel
    - Shows loading/processing/error states with animations
    - Renders either VirtualTree (tree view) or CodeView (code view)
    - Displays node count statistics in tree view
 
-6. **`useTabManager.ts`** - Tab state management hook
+6. **`hooks/useTabManager.ts`** - Tab state management hook
    - Manages multiple tabs with independent content/state
    - Syncs active tab data to component state
    - Handles tab creation, deletion, switching, and title updates
    - Tracks `sessionId` per tab for history integration
 
-7. **`useWebWorker.ts`** - Web Worker communication hook
+7. **`hooks/useWebWorker.ts`** - Web Worker communication hook
    - Encapsulates worker lifecycle (creation, termination)
    - Provides callbacks for parse/expand success/error/progress
    - Exposes `parseJson()` and `expandToMatches()` methods
    - Uses memoized callbacks to prevent worker recreation
 
-8. **`HistoryModal.tsx`** - History management UI
+8. **`components/HistoryModal.tsx`** - History management UI
    - Displays saved history entries with previews
    - Loads history entries preserving `sessionId` for updates
    - Handles individual entry deletion and clear all
 
-9. **`jsonParser.ts`** - Tree data structure logic
+9. **`parsers/jsonParser.ts`** - Tree data structure logic
    - `buildTree()` auto-expands first 2 levels (`depth < 2`)
    - Each node has unique ID (`node_${counter}`), parent reference, and dot-notation path
    - `getVisibleNodes()` filters by parent expansion state using Map for O(1) lookups
@@ -67,23 +67,23 @@ JSON/XML Formatter Pro is a high-performance web application for formatting and 
     - `EXPAND_TO_MATCHES` uses Map-based lookups (660,000× faster than array.find)
     - Returns success/error messages to main thread via postMessage
 
-11. **`VirtualTree.tsx`** - Tree view virtualization
+11. **`components/VirtualTree.tsx`** - Tree view virtualization
     - Uses `react-window` FixedSizeList with ROW_HEIGHT=22, INDENT_SIZE=16
     - Renders only visible nodes based on scroll position
     - `scrollToNode()` exposed via ref for search navigation
     - Syntax highlighting: keys (light blue), strings (orange), numbers (green), booleans/null (blue)
 
-12. **`CodeView.tsx`** - Code view with line-by-line rendering
+12. **`components/CodeView.tsx`** - Code view with line-by-line rendering
     - Virtualized display using react-window
     - Simple regex-based syntax highlighting in `renderLine()`
     - `scrollToLine()` exposed via ref, line numbers are 1-based
 
-13. **`VirtualizedInput.tsx`** - Large file editing
+13. **`components/VirtualizedInput.tsx`** - Large file editing
     - Activated when input > 100KB
     - Line-by-line editing with 300ms debounce to parent onChange
     - Handles Enter (split line), Backspace (merge), Arrow keys (navigate)
 
-14. **`indexedDBStorage.ts`** - Persistent history storage
+14. **`storage/indexedDBStorage.ts`** - Persistent history storage
     - Saves/retrieves history using IndexedDB
     - Updates existing entries when `sessionId` matches (prevents duplicates)
     - Migrates legacy localStorage data to IndexedDB
@@ -209,10 +209,29 @@ CSS variables in `index.css`:
 Toggle via `document.documentElement.setAttribute('data-theme', theme)`
 
 ## File Structure Conventions
+- Organized folder structure:
+  - `src/components/` - React components (Header, Toolbar, InputSection, OutputSection, etc.)
+  - `src/hooks/` - Custom React hooks (useTabManager, useWebWorker)
+  - `src/parsers/` - Data parsing logic (jsonParser, xmlParser)
+  - `src/storage/` - Persistence layer (indexedDBStorage, historyStorage)
+  - `src/utils/` - Utility functions (validation)
+  - `src/tests/` - Test files
 - TypeScript files use explicit return types for public functions
 - Components export via named export + displayName for dev tools
 - Worker lives in `public/` for Vite static asset handling
 - No barrel exports - import directly from files
+- Import paths use relative paths with folder prefixes (e.g., `'../components/Header'`, `'../parsers/jsonParser'`)
+
+## Testing
+- **Framework**: Vitest with React Testing Library
+- **Test Files**: Located in `src/tests/`
+  - `jsonParser.test.ts` - Core parsing logic (24 tests)
+  - `validation.test.ts` - JSON/XML validation (22 tests)
+  - `useTabManager.test.tsx` - Tab management hook (17 tests)
+- **Run Tests**: `npm test` (watch mode), `npm run test:run` (CI mode)
+- **Coverage**: `npm run test:coverage`
+- **Test Environment**: happy-dom for lightweight DOM simulation
+- All tests must pass before deployment (63/63 passing)
 
 ## Performance Benchmarks
 - 10MB JSON: 2-4s parse, 60fps scroll, ~150MB memory
@@ -226,4 +245,10 @@ Toggle via `document.documentElement.setAttribute('data-theme', theme)`
 4. Test search with many matches (expansion should complete before scroll)
 
 ## Deployment
-Production builds optimize to ~150KB gzipped. See `DEPLOYMENT.md` for Vercel/Netlify/GitHub Pages setup.
+Production builds optimize to ~150KB gzipped. See `docs/development/DEPLOYMENT.md` for Vercel/Netlify/GitHub Pages setup.
+
+## Documentation Structure
+All documentation is organized in the `docs/` folder:
+- `docs/guides/` - User-facing documentation (QUICKSTART.md, FEATURES.md)
+- `docs/development/` - Developer documentation (TESTING.md, DEPLOYMENT.md, CHANGELOG.md, PROJECT_SUMMARY.md, TEST_EXAMPLES.md)
+- `docs/assets/screenshots/` - Application screenshots for README
