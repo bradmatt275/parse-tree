@@ -9,11 +9,11 @@ A high-performance web application for formatting and visualizing large JSON and
 <div align="center">
 
 ### JSON Formatter with Tree View
-![JSON Formatter](screenshots/json-formatter.png)
+![JSON Formatter](docs/assets/screenshots/json-formatter.png)
 *Interactive tree view with syntax highlighting, collapsible nodes, and search functionality*
 
 ### XML Formatter with Tree View
-![XML Formatter](screenshots/xml-formatter.png)
+![XML Formatter](docs/assets/screenshots/xml-formatter.png)
 *XML parsing with attribute support (@id) and hierarchical visualization*
 
 </div>
