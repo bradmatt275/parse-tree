@@ -1244,6 +1244,22 @@ body {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     max-height: 40%;
+    min-height: 200px;
+  }
+
+  .output-section {
+    flex: 1;
+    min-height: 300px;
+  }
+
+  .textarea-container {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tree-container {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .header-title {
@@ -1256,6 +1272,22 @@ body {
   
   .history-modal {
     width: 95%;
+  }
+
+  /* Ensure toolbar doesn't overflow on mobile */
+  .app-toolbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Make header more compact on mobile */
+  .app-header {
+    padding: 0 0.5rem;
+  }
+
+  .header-left,
+  .header-right {
+    min-width: auto;
   }
 }
 
