@@ -99,6 +99,12 @@ function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<Map<number, string>>(new Map());
   
+  // Resizable pane state
+  const [splitPercentage, setSplitPercentage] = useState<number>(50);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
+  const contentRef = useRef<HTMLDivElement>(null);
+  
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<number | null>(null);
@@ -116,6 +122,59 @@ function App() {
     jsonInputRef.current = jsonInput;
   }, [jsonInput]);
   
+  // Handle resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !contentRef.current) return;
+      
+      const contentRect = contentRef.current.getBoundingClientRect();
+      let newPos;
+      
+      if (isMobile) {
+        newPos = ((e.clientY - contentRect.top) / contentRect.height) * 100;
+      } else {
+        newPos = ((e.clientX - contentRect.left) / contentRect.width) * 100;
+      }
+      
+      // Limit to between 20% and 80%
+      if (newPos >= 20 && newPos <= 80) {
+        setSplitPercentage(newPos);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      // Trigger resize event to update virtual lists
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = isMobile ? 'row-resize' : 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, isMobile]);
+
+  // Handle mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Initialize with one tab
   useEffect(() => {
     if (!initializedRef.current && tabs.length === 0) {
@@ -798,37 +857,61 @@ function App() {
         onClear={handleClear}
       />
       
-      <div className="content">
-        <InputSection
-          formatType={formatType}
-          jsonInput={jsonInput}
-          isProcessing={isProcessing}
-          fileInputRef={fileInputRef}
-          onInputChange={setJsonInput}
-          onFileUpload={handleFileUpload}
-          onPaste={handlePaste}
-          validationErrors={validationErrors}
+      <div className="content" ref={contentRef}>
+        <div 
+          className="input-section-wrapper" 
+          style={{ 
+            width: isMobile ? '100%' : `${splitPercentage}%`,
+            height: isMobile ? `${splitPercentage}%` : '100%'
+          }}
+        >
+          <InputSection
+            formatType={formatType}
+            jsonInput={jsonInput}
+            isProcessing={isProcessing}
+            fileInputRef={fileInputRef}
+            onInputChange={setJsonInput}
+            onFileUpload={handleFileUpload}
+            onPaste={handlePaste}
+            validationErrors={validationErrors}
+          />
+        </div>
+        
+        <div 
+          className={`resizer ${isDragging ? 'active' : ''}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
         />
         
-        <OutputSection
-          viewMode={viewMode}
-          isProcessing={isProcessing}
-          processingMessage={processingMessage}
-          error={error}
-          visibleNodes={visibleNodes}
-          allNodes={allNodes}
-          containerHeight={containerHeight}
-          formattedCode={formattedCode}
-          searchMatches={searchMatches}
-          currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
-          searchQuery={searchQuery}
-          currentMatchLine={currentMatchLine}
-          outputRef={outputRef}
-          treeRef={treeRef}
-          codeViewRef={codeViewRef}
-          onToggle={handleToggle}
-          validationErrors={validationErrors}
-        />
+        <div 
+          className="output-section-wrapper" 
+          style={{ 
+            width: isMobile ? '100%' : `${100 - splitPercentage}%`,
+            height: isMobile ? `${100 - splitPercentage}%` : '100%'
+          }}
+        >
+          <OutputSection
+            viewMode={viewMode}
+            isProcessing={isProcessing}
+            processingMessage={processingMessage}
+            error={error}
+            visibleNodes={visibleNodes}
+            allNodes={allNodes}
+            containerHeight={containerHeight}
+            formattedCode={formattedCode}
+            searchMatches={searchMatches}
+            currentMatchId={currentMatchIndex >= 0 ? matchIds[currentMatchIndex] : undefined}
+            searchQuery={searchQuery}
+            currentMatchLine={currentMatchLine}
+            outputRef={outputRef}
+            treeRef={treeRef}
+            codeViewRef={codeViewRef}
+            onToggle={handleToggle}
+            validationErrors={validationErrors}
+          />
+        </div>
       </div>
       
       <HistoryModal
