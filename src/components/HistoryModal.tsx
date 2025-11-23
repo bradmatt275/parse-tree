@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, X, Trash2 } from 'lucide-react';
-import { HistoryEntry } from './types';
-import { getHistory, deleteHistoryEntry, clearAllHistory } from './historyStorage';
+import { X, Trash2, History } from 'lucide-react';
+import { HistoryEntry } from '../types';
+import { getHistory, deleteHistoryEntry, clearAllHistory } from '../storage/historyStorage';
 
 interface HistoryModalProps {
   isOpen: boolean;

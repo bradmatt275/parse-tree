@@ -1,7 +1,7 @@
 import React, { memo, useRef, useImperativeHandle, forwardRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Box, LayoutList, Type, Hash, ToggleLeft, Ban, FileText } from 'lucide-react';
-import { TreeNode } from './jsonParser';
+import { TreeNode } from '../parsers/jsonParser';
 
 interface VirtualTreeProps {
   nodes: TreeNode[];

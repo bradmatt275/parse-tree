@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { CodeViewRef } from './CodeView';
+import { CodeViewRef } from './components/CodeView';
 import {
   getVisibleNodes,
   toggleNode,
@@ -7,17 +7,17 @@ import {
   collapseAll,
   searchNodes,
   TreeNode,
-} from './jsonParser';
+} from './parsers/jsonParser';
 import { getErrorLine, validateJson, validateXml } from './utils/validation';
-import { HistoryModal } from './HistoryModal';
-import { saveToHistory, migrateFromLocalStorage } from './historyStorage';
+import { HistoryModal } from './components/HistoryModal';
+import { saveToHistory, migrateFromLocalStorage } from './storage/historyStorage';
 import { FormatType } from './types';
-import { Header } from './Header';
-import { Toolbar } from './Toolbar';
-import { InputSection } from './InputSection';
-import { OutputSection } from './OutputSection';
-import { useWebWorker } from './useWebWorker';
-import { useTabManager } from './useTabManager';
+import { Header } from './components/Header';
+import { Toolbar } from './components/Toolbar';
+import { InputSection } from './components/InputSection';
+import { OutputSection } from './components/OutputSection';
+import { useWebWorker } from './hooks/useWebWorker';
+import { useTabManager } from './hooks/useTabManager';
 
 type Theme = 'dark' | 'light';
 type ViewMode = 'tree' | 'code';

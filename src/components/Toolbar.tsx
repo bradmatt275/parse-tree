@@ -10,7 +10,7 @@ import {
   ChevronsDown,
   ChevronsUp
 } from 'lucide-react';
-import { FormatType } from './types';
+import { FormatType } from '../types';
 
 type ViewMode = 'tree' | 'code';
 

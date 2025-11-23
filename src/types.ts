@@ -1,6 +1,6 @@
 // Types for multi-tab and history functionality
 
-import type { TreeNode } from './jsonParser';
+import type { TreeNode } from './parsers/jsonParser';
 
 export type FormatType = 'json' | 'xml';
 

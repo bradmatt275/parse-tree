@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { VirtualizedInput } from './VirtualizedInput';
 import { LineNumberTextarea } from './LineNumberTextarea';
-import { FormatType } from './types';
+import { FormatType } from '../types';
 
 interface InputSectionProps {
   formatType: FormatType;

@@ -8,7 +8,7 @@ import {
   searchNodes,
   expandToNode,
   type TreeNode,
-} from '../jsonParser';
+} from '../parsers/jsonParser';
 
 describe('jsonParser', () => {
   describe('parseJsonToTree', () => {

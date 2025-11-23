@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useTabManager } from '../useTabManager';
+import { useTabManager } from '../hooks/useTabManager';
 
 describe('useTabManager', () => {
   it('should initialize with empty tabs', () => {

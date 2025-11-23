@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { TreeNode } from './jsonParser';
+import { TreeNode } from '../parsers/jsonParser';
 
 interface WorkerMessage {
   type: 'PARSE_SUCCESS' | 'PARSE_ERROR' | 'PARSE_PROGRESS' | 'EXPAND_SUCCESS' | 'EXPAND_ERROR';

@@ -1,6 +1,6 @@
 // IndexedDB storage for history - supports large files without localStorage size limits
 
-import { HistoryEntry, FormatType } from './types';
+import { HistoryEntry, FormatType } from '../types';
 
 const DB_NAME = 'json-formatter-db';
 const DB_VERSION = 2; // Incremented to add sessionId index

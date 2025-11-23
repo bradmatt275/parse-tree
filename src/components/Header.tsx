@@ -1,6 +1,6 @@
 import React from 'react';
 import { Zap, History, Sun, Moon, X, Plus } from 'lucide-react';
-import { TabData } from './types';
+import { TabData } from '../types';
 
 type Theme = 'dark' | 'light';
 

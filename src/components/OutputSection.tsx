@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VirtualTree } from './VirtualTree';
 import { CodeView, CodeViewRef } from './CodeView';
-import { TreeNode } from './jsonParser';
+import { TreeNode } from '../parsers/jsonParser';
 
 type ViewMode = 'tree' | 'code';
 

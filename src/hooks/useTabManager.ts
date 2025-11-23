@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { TabData, FormatType } from './types';
-import { TreeNode } from './jsonParser';
+import { TabData, FormatType } from '../types';
+import { TreeNode } from '../parsers/jsonParser';
 
 const SAMPLE_JSON = `{
   "name": "JSON Formatter Pro",
