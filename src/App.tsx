@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { CodeViewRef } from './components/CodeView';
+import { MonacoEditorRef } from './components/MonacoEditor';
 import {
   getVisibleNodes,
   toggleNode,
@@ -8,7 +8,7 @@ import {
   searchNodes,
   TreeNode,
 } from './parsers/jsonParser';
-import { getErrorLine, validateJson, validateXml } from './utils/validation';
+
 import { HistoryModal } from './components/HistoryModal';
 import { saveToHistory, migrateFromLocalStorage } from './storage/historyStorage';
 import { FormatType } from './types';
@@ -97,7 +97,6 @@ function App() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('Processing JSON...');
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
-  const [validationErrors, setValidationErrors] = useState<Map<number, string>>(new Map());
   
   // Resizable pane state
   const [splitPercentage, setSplitPercentage] = useState<number>(50);
@@ -110,7 +109,7 @@ function App() {
   const debounceTimerRef = useRef<number | null>(null);
   const expansionDebounceRef = useRef<number | null>(null);
   const treeRef = useRef<any>(null);
-  const codeViewRef = useRef<CodeViewRef>(null);
+  const codeViewRef = useRef<MonacoEditorRef>(null);
   const isExpandingRef = useRef<boolean>(false);
   const lastSearchQueryRef = useRef<string>('');
   const pendingScrollRef = useRef<string | null>(null);
@@ -192,7 +191,6 @@ function App() {
   const onParseSuccess = useCallback((nodes: TreeNode[], originalInput?: string) => {
     setAllNodes(nodes);
     setError(undefined);
-    setValidationErrors(new Map());
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
     
@@ -205,37 +203,10 @@ function App() {
   
   const onParseError = useCallback((err: string) => {
     setError(err);
-    
-    // Try to find multiple errors if it's JSON
-    if (formatType === 'json') {
-      const errors = validateJson(jsonInputRef.current);
-      if (errors.length > 0) {
-        const errorMap = new Map<number, string>();
-        errors.forEach(e => errorMap.set(e.line, e.message));
-        setValidationErrors(errorMap);
-      } else {
-        // Fallback to single error line from message
-        const line = getErrorLine(err, jsonInputRef.current);
-        if (line) {
-          setValidationErrors(new Map([[line, err]]));
-        } else {
-          setValidationErrors(new Map());
-        }
-      }
-    } else {
-      // XML or other
-      const line = getErrorLine(err, jsonInputRef.current);
-      if (line) {
-        setValidationErrors(new Map([[line, err]]));
-      } else {
-        setValidationErrors(new Map());
-      }
-    }
-    
     setAllNodes([]);
     setIsProcessing(false);
     setProcessingMessage('Processing JSON...');
-  }, [setError, setAllNodes, formatType]);
+  }, [setError, setAllNodes]);
   
   const onParseProgress = useCallback((message: string) => {
     setProcessingMessage(message);
@@ -294,25 +265,6 @@ function App() {
         if (parserError) {
           const errorMsg = parserError.textContent || 'Invalid XML';
           setError(errorMsg);
-          
-          // Use saxes to find all errors
-          const errors = validateXml(input);
-          if (errors.length > 0) {
-            const errorMap = new Map<number, string>();
-            errors.forEach(e => {
-              const existing = errorMap.get(e.line);
-              errorMap.set(e.line, existing ? `${existing}; ${e.message}` : e.message);
-            });
-            setValidationErrors(errorMap);
-          } else {
-            const line = getErrorLine(errorMsg, input);
-            if (line) {
-              setValidationErrors(new Map([[line, errorMsg]]));
-            } else {
-              setValidationErrors(new Map());
-            }
-          }
-          
           setAllNodes([]);
           setIsProcessing(false);
           return;
@@ -435,7 +387,6 @@ function App() {
         
         buildXmlTree(root, nodes, 0, '', undefined);
         setAllNodes(nodes);
-        setValidationErrors(new Map());
         setIsProcessing(false);
         
         // Save to history on successful parse (skip if it's the default sample)
@@ -446,25 +397,6 @@ function App() {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Invalid XML';
         setError(errorMsg);
-        
-        // Use saxes to find all errors
-        const errors = validateXml(input);
-        if (errors.length > 0) {
-          const errorMap = new Map<number, string>();
-          errors.forEach(e => {
-            const existing = errorMap.get(e.line);
-            errorMap.set(e.line, existing ? `${existing}; ${e.message}` : e.message);
-          });
-          setValidationErrors(errorMap);
-        } else {
-          const line = getErrorLine(errorMsg, input);
-          if (line) {
-            setValidationErrors(new Map([[line, errorMsg]]));
-          } else {
-            setValidationErrors(new Map());
-          }
-        }
-        
         setAllNodes([]);
         setIsProcessing(false);
       }
@@ -590,7 +522,6 @@ function App() {
     setJsonInput(newContent);
     setAllNodes([]);
     setError(undefined);
-    setValidationErrors(new Map());
     
     // Update tab title
     const tabIndex = tabs.findIndex(t => t.id === activeTabId);
@@ -714,7 +645,6 @@ function App() {
     setJsonInput('');
     setAllNodes([]);
     setError(undefined);
-    setValidationErrors(new Map());
     setSearchQuery('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -896,8 +826,8 @@ function App() {
             onInputChange={setJsonInput}
             onFileUpload={handleFileUpload}
             onPaste={handlePaste}
-            validationErrors={validationErrors}
             onCopyAll={handleCopyFromInput}
+            theme={theme}
           />
         </div>
         
@@ -918,6 +848,7 @@ function App() {
         >
           <OutputSection
             viewMode={viewMode}
+            formatType={formatType}
             isProcessing={isProcessing}
             processingMessage={processingMessage}
             error={error}
@@ -933,8 +864,8 @@ function App() {
             treeRef={treeRef}
             codeViewRef={codeViewRef}
             onToggle={handleToggle}
-            validationErrors={validationErrors}
             onCopyAll={handleCopyFromOutput}
+            theme={theme}
           />
         </div>
       </div>

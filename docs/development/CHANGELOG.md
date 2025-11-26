@@ -2,6 +2,20 @@
 
 All notable changes to JSON Formatter Pro will be documented in this file.
 
+## [1.2.0] - 2025-11-26
+
+### ✨ Major Improvements
+- **Monaco Editor Integration**: Replaced custom virtualized input/output with the industry-standard Monaco Editor (VS Code engine).
+  - Provides native syntax highlighting, code folding, and minimap.
+  - Solves text selection and copy/paste issues found in the previous implementation.
+  - Seamlessly integrated with the application's dark/light theme system.
+- **Simplified Architecture**: Removed complex custom virtualization logic for text editing in favor of the robust Monaco solution.
+
+### 🧹 Code Cleanup
+- Removed legacy validation logic (`validation.ts`) as Monaco handles syntax validation natively.
+- Deleted unused components: `VirtualizedInput`, `LineNumberTextarea`, `CodeView`.
+- Cleaned up `App.tsx` state management by removing redundant validation error tracking.
+
 ## [1.1.0] - 2024-11-22
 
 ### ✨ New Features

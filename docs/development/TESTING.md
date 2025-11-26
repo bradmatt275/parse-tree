@@ -52,19 +52,6 @@ Tests core JSON parsing and tree manipulation logic:
 - Path generation includes 'root' prefix (implementation detail)
 - Array path format differs from expectation
 
-### ✅ `validation.test.ts` (22 tests - 18 passing)
-Tests JSON/XML validation utilities:
-
-**Covered functionality:**
-- ✅ `validateJson()` - Detects syntax errors, missing braces, trailing commas
-- ✅ `validateXml()` - Detects unclosed tags, mismatched tags, invalid attributes
-- ✅ `getErrorLine()` - Extracts line numbers from error messages
-- ✅ Error messages include line numbers for debugging
-
-**Known issues (4 failing):**
-- Minor error message format differences
-- `getErrorLine()` returns `null` vs `undefined` in edge case
-
 ### ✅ `useTabManager.test.tsx` (17 tests - 11 passing)
 Tests tab management React hook:
 
@@ -84,14 +71,13 @@ Tests tab management React hook:
 ## Test Coverage Summary
 
 **Current Status:**
-- **Total Tests:** 63
-- **Passing:** 51 (81%)
-- **Failing:** 12 (19%)
+- **Total Tests:** 41
+- **Passing:** 33 (80%)
+- **Failing:** 8 (20%)
 
 **Coverage by File Type:**
 1. **Pure Logic Functions** (~90% covered)
    - `jsonParser.ts` - Excellent coverage
-   - `validation.ts` - Excellent coverage
    
 2. **React Hooks** (~65% covered)
    - `useTabManager.ts` - Good coverage, some edge cases failing

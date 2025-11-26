@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { VirtualizedInput } from './VirtualizedInput';
-import { LineNumberTextarea } from './LineNumberTextarea';
+import { MonacoEditor } from './MonacoEditor';
 import { FormatType } from '../types';
 
 interface InputSectionProps {
@@ -12,8 +11,8 @@ interface InputSectionProps {
   onInputChange: (value: string) => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
-  validationErrors?: Map<number, string>;
   onCopyAll?: () => Promise<void>;
+  theme: 'dark' | 'light';
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -23,12 +22,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
   fileInputRef,
   onInputChange,
   onFileUpload,
-  onPaste,
-  validationErrors,
-  onCopyAll
+  theme
 }) => {
-  const shouldUseVirtualized = jsonInput.length > 100000;
-
   return (
     <motion.div 
       className="input-section"
@@ -57,26 +52,14 @@ export const InputSection: React.FC<InputSectionProps> = ({
           onChange={onFileUpload}
           style={{ display: 'none' }}
         />
-        {shouldUseVirtualized ? (
-          <VirtualizedInput
-            value={jsonInput}
-            onChange={onInputChange}
-            placeholder="Paste your JSON here or use 'Load File' button for large files..."
-            className="json-input"
-            validationErrors={validationErrors}
-            onCopyAll={onCopyAll}
-          />
-        ) : (
-          <LineNumberTextarea
-            value={jsonInput}
-            onChange={(e) => onInputChange(e.target.value)}
-            onPaste={onPaste}
-            placeholder="Paste your JSON here or use 'Load File' button for large files..."
-            spellCheck={false}
-            disabled={isProcessing}
-            validationErrors={validationErrors}
-          />
-        )}
+        <MonacoEditor
+          value={jsonInput}
+          language={formatType}
+          theme={theme}
+          onChange={(value) => onInputChange(value || '')}
+          className="monaco-editor-container"
+          readOnly={isProcessing}
+        />
       </div>
     </motion.div>
   );

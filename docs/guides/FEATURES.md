@@ -26,6 +26,16 @@ Traditional JSON formatters render the entire JSON tree in the DOM, which causes
 | 10MB | ❌ Browser crash | ✅ Works (2-4s) |
 | 20MB | ❌ Impossible | ✅ Works (4-8s) |
 
+## 📝 Code Editor Experience
+
+### Monaco Editor Integration
+We've integrated the industry-standard **Monaco Editor** (the engine that powers VS Code) for both input and code viewing:
+- ✅ **Professional Editing**: Full code editing capabilities including selection, copy/paste, and undo/redo.
+- ✅ **Syntax Highlighting**: Native highlighting for JSON and XML.
+- ✅ **Minimap**: Visual overview of your code structure.
+- ✅ **Performance**: Handles large files efficiently.
+- ✅ **Theming**: Seamlessly integrates with the application's Dark/Light modes.
+
 ## 🌳 Tree View Features
 
 ### Smart Expand/Collapse

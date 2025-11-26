@@ -1,13 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VirtualTree } from './VirtualTree';
-import { CodeView, CodeViewRef } from './CodeView';
+import { MonacoEditor, MonacoEditorRef } from './MonacoEditor';
 import { TreeNode } from '../parsers/jsonParser';
+import { FormatType } from '../types';
 
 type ViewMode = 'tree' | 'code';
 
 interface OutputSectionProps {
   viewMode: ViewMode;
+  formatType: FormatType;
   isProcessing: boolean;
   processingMessage: string;
   error: string | undefined;
@@ -21,14 +23,15 @@ interface OutputSectionProps {
   currentMatchLine: number;
   outputRef: React.RefObject<HTMLDivElement>;
   treeRef: React.RefObject<any>;
-  codeViewRef: React.RefObject<CodeViewRef>;
+  codeViewRef: React.RefObject<MonacoEditorRef>;
   onToggle: (nodeId: string) => void;
-  validationErrors?: Map<number, string>;
   onCopyAll?: () => Promise<void>;
+  theme: 'dark' | 'light';
 }
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
   viewMode,
+  formatType,
   isProcessing,
   processingMessage,
   error,
@@ -38,14 +41,12 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   formattedCode,
   searchMatches,
   currentMatchId,
-  searchQuery,
-  currentMatchLine,
   outputRef,
   treeRef,
   codeViewRef,
   onToggle,
-  validationErrors,
   onCopyAll,
+  theme
 }) => {
   const [isSelected, setIsSelected] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -168,20 +169,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
               exit={{ opacity: 0, y: 20 }}
               transition={{ type: "spring", stiffness: 200 }}
             >
-              <strong>{validationErrors && validationErrors.size > 1 ? `Found ${validationErrors.size} Errors:` : 'Error parsing input:'}</strong>
+              <strong>Error parsing input:</strong>
               <br />
-              {validationErrors && validationErrors.size > 0 ? (
-                <ul style={{ listStyleType: 'none', padding: 0, marginTop: '0.5rem', textAlign: 'left' }}>
-                  {Array.from(validationErrors.entries()).sort((a, b) => a[0] - b[0]).map(([line, msg]) => (
-                    <li key={line} style={{ marginBottom: '0.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.25rem' }}>
-                      <span style={{ color: '#ff6b6b', fontWeight: 'bold', marginRight: '0.5rem' }}>Line {line}:</span>
-                      {msg}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                error
-              )}
+              {error}
             </motion.div>
           ) : viewMode === 'tree' ? (
             <motion.div
@@ -210,11 +200,13 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
               transition={{ duration: 0.3 }}
               style={{ height: '100%' }}
             >
-              <CodeView 
+              <MonacoEditor
                 ref={codeViewRef}
-                code={formattedCode} 
-                searchQuery={searchQuery}
-                currentMatchLine={currentMatchLine}
+                value={formattedCode}
+                language={formatType}
+                theme={theme}
+                readOnly={true}
+                className="monaco-editor-container"
               />
             </motion.div>
           )}

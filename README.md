@@ -24,8 +24,8 @@ A high-performance web application for formatting and visualizing large JSON and
 - **Virtual Scrolling**: Renders only visible nodes, enabling smooth performance with massive files (tested with 19MB+).
 - **Web Worker Processing**: Background parsing prevents UI freezing.
 - **Search & Navigation**: Search keys, values, and paths with instant navigation and auto-expansion.
-- **Dual Views**: Switch between interactive Tree View and traditional Code View.
-- **Editable Input**: Virtualized input for editing large files line-by-line.
+- **Dual Views**: Switch between interactive Tree View and professional Monaco Editor Code View.
+- **Monaco Editor Integration**: Full-featured code editing with VS Code-like experience (minimap, folding, syntax highlighting).
 - **Theme Support**: Dark and Light modes.
 - **Auto-Formatting**: Smart debounced formatting as you type.
 
@@ -53,7 +53,8 @@ npm run build
 
 - **React 18 & TypeScript**: Modern, type-safe codebase.
 - **Vite**: Fast build tool.
-- **react-window**: Efficient virtual scrolling.
+- **Monaco Editor**: Industry-standard code editor for input and code view.
+- **react-window**: Efficient virtual scrolling for tree view.
 - **Web Workers**: Offloads heavy parsing to background threads.
 - **Map-based Lookups**: O(1) search performance.
 

@@ -837,64 +837,6 @@ body {
   box-shadow: var(--glow);
 }
 
-.code-view {
-  width: 100%;
-  height: 100%;
-  white-space: pre;
-  counter-reset: line;
-}
-
-.code-view-container {
-  width: 100%;
-  height: 100%;
-  background-color: var(--bg-primary);
-  overflow: hidden;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-}
-
-.code-line {
-  display: flex;
-  align-items: flex-start;
-  padding: 0;
-  background: var(--bg-primary);
-  white-space: pre;
-  transition: background 0.2s ease;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-.code-line:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.code-line.current-match {
-  background: var(--accent-gradient);
-  color: white;
-  box-shadow: var(--shadow-sm);
-  animation: highlightPulse 2s ease-in-out infinite;
-}
-
-.code-line .line-number {
-  flex-shrink: 0;
-  width: 50px;
-  padding: 0 8px;
-  text-align: right;
-  color: var(--text-secondary);
-  user-select: none;
-  background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-  font-size: 12px;
-}
-
-.code-line .line-content {
-  flex: 1;
-  padding: 0 8px;
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: inherit;
-  white-space: pre;
-}
-
 .json-code {
   display: block;
   font-family: inherit;
@@ -923,48 +865,6 @@ body {
 .tree-node.highlight {
   background: var(--highlight-bg);
   animation: highlightPulse 2s ease-in-out infinite;
-}
-
-.line-number-textarea-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: var(--bg-primary);
-}
-
-.line-numbers {
-  flex-shrink: 0;
-  width: 50px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-  overflow: hidden;
-  text-align: right;
-  padding: 1.25rem 0;
-  user-select: none;
-  color: var(--text-secondary);
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 24px;
-}
-
-.line-number {
-  padding: 0 8px;
-}
-
-.line-number.error {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: var(--error-color);
-  font-weight: bold;
-}
-
-.virtual-line.error-line {
-  background-color: rgba(239, 68, 68, 0.1);
-}
-
-.virtual-line.error-line .line-number {
-  color: var(--error-color);
-  font-weight: bold;
 }
 
 .tree-node.current-match {
@@ -1075,84 +975,6 @@ body {
 .theme-toggle:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: rotate(180deg) scale(1.1);
-}
-
-/* Virtualized Input Styles */
-.virtualized-input {
-  width: 100%;
-  height: 100%;
-  background-color: var(--bg-primary);
-  border: none;
-  overflow: hidden;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  position: relative;
-  outline: none;
-}
-
-.virtualized-input:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: -2px;
-}
-
-.virtualized-input.selected {
-  background: rgba(102, 126, 234, 0.05);
-}
-
-.virtualized-input.selected::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid var(--accent-color);
-  pointer-events: none;
-  z-index: 10;
-}
-
-.virtual-line {
-  display: flex;
-  align-items: flex-start;
-  padding: 0;
-  border-bottom: 1px solid transparent;
-  background-color: var(--bg-primary);
-}
-
-.virtual-line:hover {
-  background-color: var(--bg-secondary);
-}
-
-.virtual-line .line-number {
-  flex-shrink: 0;
-  width: 50px;
-  padding: 2px 8px;
-  text-align: right;
-  color: var(--text-secondary);
-  user-select: none;
-  background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-  font-size: 12px;
-}
-
-.virtual-line .line-textarea {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: inherit;
-  padding: 2px 8px;
-  resize: none;
-  overflow: hidden;
-  line-height: 20px;
-  height: 24px;
-  white-space: pre;
-}
-
-.virtual-line .line-textarea:focus {
-  background-color: var(--bg-tertiary);
 }
 
 /* History Modal Styles */

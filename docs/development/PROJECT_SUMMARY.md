@@ -8,8 +8,9 @@ A high-performance JSON formatter web application has been successfully built wi
 
 ### Core Application Files
 - ✅ `src/App.tsx` - Main application component with state management
-- ✅ `src/VirtualTree.tsx` - Virtual scrolling tree view component
-- ✅ `src/jsonParser.ts` - JSON parsing and tree data structure logic
+- ✅ `src/components/VirtualTree.tsx` - Virtual scrolling tree view component
+- ✅ `src/components/MonacoEditor.tsx` - Monaco Editor wrapper for code editing
+- ✅ `src/parsers/jsonParser.ts` - JSON parsing and tree data structure logic
 - ✅ `src/main.tsx` - Application entry point
 - ✅ `src/index.css` - Comprehensive styling with dark/light themes
 - ✅ `index.html` - HTML template
@@ -83,7 +84,8 @@ A high-performance JSON formatter web application has been successfully built wi
 - **React 18**: Modern hooks-based architecture
 - **TypeScript**: Type-safe development
 - **Vite**: Fast build tool and dev server
-- **react-window**: Virtual scrolling library
+- **Monaco Editor**: VS Code-like editing experience
+- **react-window**: Virtual scrolling library (Tree View)
 - **CSS Variables**: Dynamic theming
 
 ### Performance Optimizations
