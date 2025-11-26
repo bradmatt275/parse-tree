@@ -683,6 +683,22 @@ function App() {
     }
   }, [jsonInput, formatType]);
   
+  // Handler for copying from output section (used for Ctrl+C and right-click copy)
+  const handleCopyFromOutput = useCallback(async () => {
+    try {
+      let formatted: string;
+      if (formatType === 'xml') {
+        // For XML, just use the original input (already formatted)
+        formatted = jsonInput;
+      } else {
+        formatted = JSON.stringify(JSON.parse(jsonInput), null, 2);
+      }
+      await navigator.clipboard.writeText(formatted);
+    } catch (err) {
+      throw new Error('Failed to copy to clipboard');
+    }
+  }, [jsonInput, formatType]);
+  
   const toggleTheme = useCallback(() => {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
   }, []);
@@ -910,6 +926,7 @@ function App() {
             codeViewRef={codeViewRef}
             onToggle={handleToggle}
             validationErrors={validationErrors}
+            onCopyAll={handleCopyFromOutput}
           />
         </div>
       </div>

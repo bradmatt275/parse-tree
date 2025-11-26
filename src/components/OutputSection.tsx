@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VirtualTree } from './VirtualTree';
 import { CodeView, CodeViewRef } from './CodeView';
@@ -24,6 +24,7 @@ interface OutputSectionProps {
   codeViewRef: React.RefObject<CodeViewRef>;
   onToggle: (nodeId: string) => void;
   validationErrors?: Map<number, string>;
+  onCopyAll?: () => Promise<void>;
 }
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
@@ -44,7 +45,64 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   codeViewRef,
   onToggle,
   validationErrors,
+  onCopyAll,
 }) => {
+  const [isSelected, setIsSelected] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  // Clear selection when content changes or view mode changes
+  useEffect(() => {
+    setIsSelected(false);
+  }, [formattedCode, viewMode, allNodes]);
+
+  // Handle keyboard events for Ctrl+A (select all) and Ctrl+C (copy)
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    
+    if (isCtrlOrCmd && e.key === 'a') {
+      // Ctrl+A: Select all content (visual feedback)
+      e.preventDefault();
+      e.stopPropagation();
+      setIsSelected(true);
+      setCopyFeedback('All content selected. Press Ctrl+C to copy.');
+      setTimeout(() => setCopyFeedback(null), 2000);
+    } else if (isCtrlOrCmd && e.key === 'c') {
+      // Ctrl+C: Copy all formatted content
+      e.preventDefault();
+      e.stopPropagation();
+      if (onCopyAll) {
+        onCopyAll().then(() => {
+          setCopyFeedback('Copied to clipboard!');
+          setTimeout(() => {
+            setCopyFeedback(null);
+            setIsSelected(false);
+          }, 2000);
+        }).catch(() => {
+          setCopyFeedback('Failed to copy');
+          setTimeout(() => setCopyFeedback(null), 2000);
+        });
+      }
+    }
+  }, [onCopyAll]);
+
+  // Handle copy event (for right-click copy menu)
+  const handleCopy = useCallback((e: React.ClipboardEvent) => {
+    // Only intercept if we have content to copy and the onCopyAll handler
+    if (onCopyAll && formattedCode) {
+      e.preventDefault();
+      onCopyAll().then(() => {
+        setCopyFeedback('Copied to clipboard!');
+        setTimeout(() => {
+          setCopyFeedback(null);
+          setIsSelected(false);
+        }, 2000);
+      }).catch(() => {
+        setCopyFeedback('Failed to copy');
+        setTimeout(() => setCopyFeedback(null), 2000);
+      });
+    }
+  }, [onCopyAll, formattedCode]);
+
   return (
     <motion.div 
       className="output-section"
@@ -65,7 +123,20 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
           </span>
         )}
       </motion.div>
-      <div className="tree-container" ref={outputRef}>
+      <div 
+        className={`tree-container ${isSelected ? 'selected' : ''}`}
+        ref={outputRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onCopy={handleCopy}
+        role="region"
+        aria-label="Formatted output"
+      >
+        {copyFeedback && (
+          <div className="copy-feedback">
+            {copyFeedback}
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {isProcessing ? (
             <motion.div 
