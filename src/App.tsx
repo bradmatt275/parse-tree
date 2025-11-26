@@ -697,6 +697,15 @@ function App() {
     }
   }, [getFormattedContent]);
   
+  // Handler for copying from input section (used for Ctrl+C and right-click copy)
+  const handleCopyFromInput = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(jsonInput);
+    } catch (err) {
+      throw new Error('Failed to copy to clipboard');
+    }
+  }, [jsonInput]);
+  
   const toggleTheme = useCallback(() => {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
   }, []);
@@ -888,6 +897,7 @@ function App() {
             onFileUpload={handleFileUpload}
             onPaste={handlePaste}
             validationErrors={validationErrors}
+            onCopyAll={handleCopyFromInput}
           />
         </div>
         

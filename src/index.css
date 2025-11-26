@@ -1086,6 +1086,29 @@ body {
   overflow: hidden;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
+  position: relative;
+  outline: none;
+}
+
+.virtualized-input:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+.virtualized-input.selected {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.virtualized-input.selected::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid var(--accent-color);
+  pointer-events: none;
+  z-index: 10;
 }
 
 .virtual-line {
