@@ -50,6 +50,26 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   const [isSelected, setIsSelected] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
+  // Helper function to show feedback message with auto-clear
+  const showFeedback = useCallback((message: string, clearSelection = false) => {
+    setCopyFeedback(message);
+    setTimeout(() => {
+      setCopyFeedback(null);
+      if (clearSelection) {
+        setIsSelected(false);
+      }
+    }, 2000);
+  }, []);
+
+  // Helper function to perform copy operation with feedback
+  const performCopy = useCallback(() => {
+    if (onCopyAll) {
+      onCopyAll()
+        .then(() => showFeedback('Copied to clipboard!', true))
+        .catch(() => showFeedback('Failed to copy'));
+    }
+  }, [onCopyAll, showFeedback]);
+
   // Clear selection when content changes or view mode changes
   useEffect(() => {
     setIsSelected(false);
@@ -64,44 +84,23 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
       e.preventDefault();
       e.stopPropagation();
       setIsSelected(true);
-      setCopyFeedback('All content selected. Press Ctrl+C to copy.');
-      setTimeout(() => setCopyFeedback(null), 2000);
+      showFeedback('All content selected. Press Ctrl+C to copy.');
     } else if (isCtrlOrCmd && e.key === 'c') {
       // Ctrl+C: Copy all formatted content
       e.preventDefault();
       e.stopPropagation();
-      if (onCopyAll) {
-        onCopyAll().then(() => {
-          setCopyFeedback('Copied to clipboard!');
-          setTimeout(() => {
-            setCopyFeedback(null);
-            setIsSelected(false);
-          }, 2000);
-        }).catch(() => {
-          setCopyFeedback('Failed to copy');
-          setTimeout(() => setCopyFeedback(null), 2000);
-        });
-      }
+      performCopy();
     }
-  }, [onCopyAll]);
+  }, [showFeedback, performCopy]);
 
   // Handle copy event (for right-click copy menu)
   const handleCopy = useCallback((e: React.ClipboardEvent) => {
     // Only intercept if we have content to copy and the onCopyAll handler
     if (onCopyAll && formattedCode) {
       e.preventDefault();
-      onCopyAll().then(() => {
-        setCopyFeedback('Copied to clipboard!');
-        setTimeout(() => {
-          setCopyFeedback(null);
-          setIsSelected(false);
-        }, 2000);
-      }).catch(() => {
-        setCopyFeedback('Failed to copy');
-        setTimeout(() => setCopyFeedback(null), 2000);
-      });
+      performCopy();
     }
-  }, [onCopyAll, formattedCode]);
+  }, [onCopyAll, formattedCode, performCopy]);
 
   return (
     <motion.div 
