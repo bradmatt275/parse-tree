@@ -13,6 +13,7 @@ interface InputSectionProps {
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   validationErrors?: Map<number, string>;
+  onCopyAll?: () => Promise<void>;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -23,7 +24,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
   onInputChange,
   onFileUpload,
   onPaste,
-  validationErrors
+  validationErrors,
+  onCopyAll
 }) => {
   const shouldUseVirtualized = jsonInput.length > 100000;
 
@@ -62,6 +64,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
             placeholder="Paste your JSON here or use 'Load File' button for large files..."
             className="json-input"
             validationErrors={validationErrors}
+            onCopyAll={onCopyAll}
           />
         ) : (
           <LineNumberTextarea

@@ -7,6 +7,7 @@ interface VirtualizedInputProps {
   placeholder?: string;
   className?: string;
   validationErrors?: Map<number, string>;
+  onCopyAll?: () => Promise<void>;
 }
 
 interface LineData {
@@ -69,13 +70,56 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
   onChange, 
   placeholder = 'Paste or type JSON here...',
   className = '',
-  validationErrors
+  validationErrors,
+  onCopyAll
 }) => {
   const listRef = useRef<List>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [focusedLine, setFocusedLine] = useState<number | null>(null);
   const [lines, setLines] = useState<string[]>(() => value.split('\n'));
   const [containerHeight, setContainerHeight] = useState<number>(600);
+  const [isSelected, setIsSelected] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+
+  // Helper function to show feedback message with auto-clear
+  const showFeedback = useCallback((message: string, clearSelection = false) => {
+    setCopyFeedback(message);
+    // Clear any existing timeout
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+    feedbackTimeoutRef.current = window.setTimeout(() => {
+      setCopyFeedback(null);
+      if (clearSelection) {
+        setIsSelected(false);
+      }
+      feedbackTimeoutRef.current = null;
+    }, 2000);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Helper function to perform copy operation with feedback
+  const performCopy = useCallback(() => {
+    if (onCopyAll) {
+      onCopyAll()
+        .then(() => showFeedback('Copied to clipboard!', true))
+        .catch(() => showFeedback('Failed to copy'));
+    }
+  }, [onCopyAll, showFeedback]);
+
+  // Clear selection when content changes
+  useEffect(() => {
+    setIsSelected(false);
+  }, [value]);
 
   // Update lines when value prop changes externally
   useEffect(() => {
@@ -198,6 +242,32 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
     }
   }, [lines, onChange]);
 
+  // Handle container-level keyboard events for Ctrl+A (select all) and Ctrl+C (copy)
+  const handleContainerKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    
+    if (isCtrlOrCmd && e.key === 'a') {
+      // Ctrl+A: Select all content (visual feedback)
+      e.preventDefault();
+      e.stopPropagation();
+      setIsSelected(true);
+      showFeedback('All content selected. Press Ctrl+C to copy.');
+    } else if (isCtrlOrCmd && e.key === 'c') {
+      // Ctrl+C: Copy all content
+      e.preventDefault();
+      e.stopPropagation();
+      performCopy();
+    }
+  }, [showFeedback, performCopy]);
+
+  // Handle copy event (for right-click copy menu)
+  const handleContainerCopy = useCallback((e: React.ClipboardEvent) => {
+    if (onCopyAll) {
+      e.preventDefault();
+      performCopy();
+    }
+  }, [onCopyAll, performCopy]);
+
   const itemData: LineData = {
     lines,
     onChange: handleLineChange,
@@ -234,7 +304,20 @@ export const VirtualizedInput: React.FC<VirtualizedInputProps> = ({
   }
 
   return (
-    <div ref={containerRef} className={`virtualized-input ${className}`}>
+    <div 
+      ref={containerRef} 
+      className={`virtualized-input ${className} ${isSelected ? 'selected' : ''}`}
+      tabIndex={0}
+      onKeyDown={handleContainerKeyDown}
+      onCopy={handleContainerCopy}
+      role="region"
+      aria-label="Input editor"
+    >
+      {copyFeedback && (
+        <div className="copy-feedback">
+          {copyFeedback}
+        </div>
+      )}
       <List
         ref={listRef}
         height={containerHeight}

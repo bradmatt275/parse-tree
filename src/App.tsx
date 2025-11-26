@@ -667,21 +667,44 @@ function App() {
     }
   }, [handleNextMatch, handlePreviousMatch]);
   
+  // Helper function to get formatted content for copying
+  const getFormattedContent = useCallback((): string => {
+    if (formatType === 'xml') {
+      // For XML, just use the original input (already formatted)
+      return jsonInput;
+    } else {
+      return JSON.stringify(JSON.parse(jsonInput), null, 2);
+    }
+  }, [jsonInput, formatType]);
+
   const handleCopy = useCallback(async () => {
     try {
-      let formatted: string;
-      if (formatType === 'xml') {
-        // For XML, just use the original input (already formatted)
-        formatted = jsonInput;
-      } else {
-        formatted = JSON.stringify(JSON.parse(jsonInput), null, 2);
-      }
+      const formatted = getFormattedContent();
       await navigator.clipboard.writeText(formatted);
       alert('Copied to clipboard!');
     } catch (err) {
       alert('Failed to copy to clipboard');
     }
-  }, [jsonInput, formatType]);
+  }, [getFormattedContent]);
+  
+  // Handler for copying from output section (used for Ctrl+C and right-click copy)
+  const handleCopyFromOutput = useCallback(async () => {
+    try {
+      const formatted = getFormattedContent();
+      await navigator.clipboard.writeText(formatted);
+    } catch (err) {
+      throw new Error('Failed to copy to clipboard');
+    }
+  }, [getFormattedContent]);
+  
+  // Handler for copying from input section (used for Ctrl+C and right-click copy)
+  const handleCopyFromInput = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(jsonInput);
+    } catch (err) {
+      throw new Error('Failed to copy to clipboard');
+    }
+  }, [jsonInput]);
   
   const toggleTheme = useCallback(() => {
     setTheme((prev: Theme) => prev === 'dark' ? 'light' : 'dark');
@@ -874,6 +897,7 @@ function App() {
             onFileUpload={handleFileUpload}
             onPaste={handlePaste}
             validationErrors={validationErrors}
+            onCopyAll={handleCopyFromInput}
           />
         </div>
         
@@ -910,6 +934,7 @@ function App() {
             codeViewRef={codeViewRef}
             onToggle={handleToggle}
             validationErrors={validationErrors}
+            onCopyAll={handleCopyFromOutput}
           />
         </div>
       </div>
