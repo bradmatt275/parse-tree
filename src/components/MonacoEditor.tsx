@@ -38,6 +38,13 @@ export const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(({
         { token: 'number', foreground: '7ee8fa' },
         { token: 'keyword.json', foreground: 'a78bfa' },
         { token: 'delimiter', foreground: 'a0a0a0' },
+        
+        // XML Rules
+        { token: 'tag.xml', foreground: '60a5fa' },
+        { token: 'attribute.name.xml', foreground: '7ee8fa' },
+        { token: 'attribute.value.xml', foreground: 'f093fb' },
+        { token: 'metatag.xml', foreground: 'a0a0a0' },
+        { token: 'comment.xml', foreground: '6272a4' },
       ],
       colors: {
         'editor.background': '#1a1a2e',
@@ -59,6 +66,13 @@ export const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(({
         { token: 'number', foreground: '06b6d4' },
         { token: 'keyword.json', foreground: '8b5cf6' },
         { token: 'delimiter', foreground: '64748b' },
+
+        // XML Rules
+        { token: 'tag.xml', foreground: '3b82f6' },
+        { token: 'attribute.name.xml', foreground: '06b6d4' },
+        { token: 'attribute.value.xml', foreground: 'd946ef' },
+        { token: 'metatag.xml', foreground: '64748b' },
+        { token: 'comment.xml', foreground: '64748b' },
       ],
       colors: {
         'editor.background': '#ffffff',
