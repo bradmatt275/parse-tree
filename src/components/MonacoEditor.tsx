@@ -61,16 +61,16 @@ export const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(({
       base: 'vs',
       inherit: true,
       rules: [
-        { token: 'string.key.json', foreground: '3b82f6' },
-        { token: 'string.value.json', foreground: 'd946ef' },
-        { token: 'number', foreground: '06b6d4' },
-        { token: 'keyword.json', foreground: '8b5cf6' },
-        { token: 'delimiter', foreground: '64748b' },
+        { token: 'string.key.json', foreground: '0550ae' },
+        { token: 'string.value.json', foreground: 'c41a16' },
+        { token: 'number', foreground: '0550ae' },
+        { token: 'keyword.json', foreground: '6f42c1' },
+        { token: 'delimiter', foreground: '1e293b' },
 
         // XML Rules
-        { token: 'tag.xml', foreground: '3b82f6' },
-        { token: 'attribute.name.xml', foreground: '06b6d4' },
-        { token: 'attribute.value.xml', foreground: 'd946ef' },
+        { token: 'tag.xml', foreground: '0550ae' },
+        { token: 'attribute.name.xml', foreground: '0550ae' },
+        { token: 'attribute.value.xml', foreground: 'c41a16' },
         { token: 'metatag.xml', foreground: '64748b' },
         { token: 'comment.xml', foreground: '64748b' },
       ],
@@ -79,7 +79,7 @@ export const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(({
         'editor.foreground': '#1e293b',
         'editor.lineHighlightBackground': '#f1f5f9',
         'editorCursor.foreground': '#3b82f6',
-        'editor.selectionBackground': '#ddd6fe40',
+        'editor.selectionBackground': '#fff4cc80',
         'editorLineNumber.foreground': '#64748b',
         'editorLineNumber.activeForeground': '#0f172a',
       }
