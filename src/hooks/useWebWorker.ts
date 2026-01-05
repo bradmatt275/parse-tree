@@ -27,7 +27,7 @@ export const useWebWorker = ({
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
-    workerRef.current = new Worker('/worker.js');
+    workerRef.current = new Worker(new URL('/worker.js', import.meta.url));
     
     workerRef.current.onmessage = (e: MessageEvent) => {
       const { type, nodes, error, message, originalInput }: WorkerMessage = e.data;
