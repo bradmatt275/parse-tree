@@ -2,7 +2,7 @@
 
 A high-performance web application for formatting and visualizing large JSON and XML files (10MB+).
 
-**[Live Demo](https://parse.yorhanet.app)**
+**[Live Demo](https://bradmatt275.github.io/parse-tree)**
 
 ## 📸 Screenshots
 
